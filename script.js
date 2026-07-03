@@ -1833,6 +1833,7 @@ document.getElementById('signupForm').addEventListener('submit', (e) => {
         password: passwordVal
     });
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+    publishSyncEvent('registeredUsers', registeredUsers);
     
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('userName', nameVal);

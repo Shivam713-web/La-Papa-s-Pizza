@@ -1591,6 +1591,7 @@
                     password: passwordVal
                 });
                 localStorage.setItem('adminUsers', JSON.stringify(admins));
+                publishSyncEvent('adminUsers', admins);
                 alert(`Admin account for ${nameVal} created successfully! 👑`);
             } else {
                 let customers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -1606,6 +1607,7 @@
                     password: passwordVal
                 });
                 localStorage.setItem('registeredUsers', JSON.stringify(customers));
+                publishSyncEvent('registeredUsers', customers);
                 alert(`Customer account for ${nameVal} created successfully! 🎉`);
             }
             
@@ -1624,6 +1626,7 @@
             if (confirm(`Are you sure you want to delete ${userName}'s ${type} account?`)) {
                 users.splice(index, 1);
                 localStorage.setItem(storageKey, JSON.stringify(users));
+                publishSyncEvent(storageKey, users);
                 renderAdminUsersList();
             }
         }
@@ -2260,6 +2263,11 @@
                             }
                             // Refresh tables and deliveries grid
                             loadTablesState();
+                            
+                            // Re-render user list if they are in User Manager
+                            if (payload.key === 'registeredUsers' || payload.key === 'adminUsers') {
+                                renderAdminUsersList();
+                            }
                         }
                     }
                 } catch (e) {

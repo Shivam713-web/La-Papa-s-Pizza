@@ -891,6 +891,19 @@
     </div>
 
     <script>
+        const NTFY_TOPIC = 'lapapas_pizza_shivam713_sync';
+
+        function publishSyncEvent(key, value) {
+            fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+                method: 'POST',
+                headers: {
+                    'Title': 'Dashboard Sync',
+                    'Tags': 'sync'
+                },
+                body: JSON.stringify({ key, value })
+            }).catch(err => console.error("Sync error:", err));
+        }
+
         const totalTables = 10;
         let selectedTable = null;
         let tablesState = {};
@@ -1103,7 +1116,9 @@
             if (!state) return;
             
             state.orderedItems[itemIndex].served = !(state.orderedItems[itemIndex].served || false);
-            localStorage.setItem(`table_order_${t}`, JSON.stringify(state));
+            const key = `table_order_${t}`;
+            localStorage.setItem(key, JSON.stringify(state));
+            publishSyncEvent(key, state);
             loadTablesState();
         }
 
@@ -1121,8 +1136,10 @@
                     });
                 }
                 
-                localStorage.removeItem(`table_order_${t}`);
-                // Notify user tabs that bill was settled by deleting storage
+                const key = `table_order_${t}`;
+                localStorage.removeItem(key);
+                publishSyncEvent(key, null);
+                
                 loadTablesState();
                 if (selectedTable === t) selectedTable = null;
                 document.getElementById('detailsPanel').innerHTML = `
@@ -1142,7 +1159,9 @@
             if (choice === 'ALL') {
                 if (confirm("Are you sure you want to clear ALL table orders? This resets your entire restaurant!")) {
                     for (let t = 1; t <= totalTables; t++) {
-                        localStorage.removeItem(`table_order_${t}`);
+                        const key = `table_order_${t}`;
+                        localStorage.removeItem(key);
+                        publishSyncEvent(key, null);
                     }
                     loadTablesState();
                     selectedTable = null;
@@ -1157,7 +1176,9 @@
                 const tableId = parseInt(choice);
                 if (!isNaN(tableId) && tableId >= 1 && tableId <= totalTables) {
                     if (confirm(`Are you sure you want to clear orders for Table ${tableId}?`)) {
-                        localStorage.removeItem(`table_order_${tableId}`);
+                        const key = `table_order_${tableId}`;
+                        localStorage.removeItem(key);
+                        publishSyncEvent(key, null);
                         loadTablesState();
                         if (selectedTable === tableId) {
                             selectedTable = null;
@@ -1854,8 +1875,9 @@
             if (!stored) return;
             const order = JSON.parse(stored);
             order.status = newStatus;
-            localStorage.setItem(`delivery_order_${orderId}`, JSON.stringify(order));
-            localStorage.setItem('dealUpdated', Date.now()); // Trigger sync to client tracker
+            const key = `delivery_order_${orderId}`;
+            localStorage.setItem(key, JSON.stringify(order));
+            publishSyncEvent(key, order);
             if (dashboardViewMode === 'deliveries') {
                 renderDeliveriesGrid();
             }
@@ -1871,8 +1893,9 @@
                     // 1. If any client is tracking this order, it instantly updates to 'Delivered'!
                     // 2. The history log archives it with status: 'delivered'!
                     orderData.status = 'delivered';
-                    localStorage.setItem(`delivery_order_${orderId}`, JSON.stringify(orderData));
-                    localStorage.setItem('dealUpdated', Date.now()); // Sync client tracker
+                    const key = `delivery_order_${orderId}`;
+                    localStorage.setItem(key, JSON.stringify(orderData));
+                    publishSyncEvent(key, orderData);
                     
                     // Archive to history
                     archiveToHistory({
@@ -1889,8 +1912,9 @@
                 
                 // Brief delay to allow client tracker to animate before deleting from active storage
                 setTimeout(() => {
-                    localStorage.removeItem(`delivery_order_${orderId}`);
-                    localStorage.setItem('dealUpdated', Date.now()); // Final sync
+                    const key = `delivery_order_${orderId}`;
+                    localStorage.removeItem(key);
+                    publishSyncEvent(key, null);
                     activeDeliveryOrderId = null;
                     if (dashboardViewMode === 'deliveries') {
                         renderDeliveriesGrid();
@@ -2198,6 +2222,7 @@
                 let comments = JSON.parse(localStorage.getItem('contactMessages') || '[]');
                 comments.splice(index, 1);
                 localStorage.setItem('contactMessages', JSON.stringify(comments));
+                publishSyncEvent('contactMessages', comments);
                 updateCommentsBadgeCount();
                 renderCommentsList();
             }
@@ -2206,6 +2231,7 @@
         function clearAllComments() {
             if (confirm("Are you sure you want to delete ALL customer comments/issues? This action cannot be undone.")) {
                 localStorage.setItem('contactMessages', JSON.stringify([]));
+                publishSyncEvent('contactMessages', []);
                 updateCommentsBadgeCount();
                 renderCommentsList();
             }
@@ -2217,6 +2243,34 @@
                 window.location.href = 'index.html';
             }
         }
+
+        // ===== REAL-TIME MULTI-DEVICE SYNC =====
+        function initRemoteSync() {
+            const eventSource = new EventSource('https://ntfy.sh/lapapas_pizza_shivam713_sync/sse');
+            eventSource.onmessage = (event) => {
+                try {
+                    const ntfyData = JSON.parse(event.data);
+                    if (ntfyData.event === 'message') {
+                        const payload = JSON.parse(ntfyData.message);
+                        if (payload.key) {
+                            if (payload.value === null) {
+                                localStorage.removeItem(payload.key);
+                            } else {
+                                localStorage.setItem(payload.key, JSON.stringify(payload.value));
+                            }
+                            // Refresh tables and deliveries grid
+                            loadTablesState();
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error parsing sync event:", e);
+                }
+            };
+            eventSource.onerror = (e) => {
+                console.warn("Sync stream disconnected, reconnecting...", e);
+            };
+        }
+        initRemoteSync();
     </script>
 </body>
 </html>

@@ -749,6 +749,19 @@ document.getElementById('applyCoupon').addEventListener('click', () => {
 });
 
 // Dine-In LocalStorage Syncer
+const NTFY_TOPIC = 'lapapas_pizza_shivam713_sync';
+
+function publishSyncEvent(key, value) {
+    fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+        method: 'POST',
+        headers: {
+            'Title': 'Sync Event',
+            'Tags': 'sync'
+        },
+        body: JSON.stringify({ key, value })
+    }).catch(err => console.error("Sync error:", err));
+}
+
 function saveDineInState(status = 'active') {
     const state = {
         table: tableNumber,
@@ -756,7 +769,9 @@ function saveDineInState(status = 'active') {
         status: status, // 'active' or 'billing'
         lastUpdated: Date.now()
     };
-    localStorage.setItem(`table_order_${tableNumber}`, JSON.stringify(state));
+    const key = `table_order_${tableNumber}`;
+    localStorage.setItem(key, JSON.stringify(state));
+    publishSyncEvent(key, state);
 }
 
 // Checkout: Send KOT or Place Delivery Order
@@ -845,7 +860,9 @@ document.getElementById('checkoutBtn').addEventListener('click', () => {
         
         // Save in localStorage for order tracking ID lookup
         try {
-            localStorage.setItem(`delivery_order_${deliveryOrderId}`, JSON.stringify(orderData));
+            const key = `delivery_order_${deliveryOrderId}`;
+            localStorage.setItem(key, JSON.stringify(orderData));
+            publishSyncEvent(key, orderData);
         } catch (e) {
             console.error("Local storage error:", e);
         }
@@ -960,8 +977,9 @@ window.closeDeliverySuccessModal = function(btn, action, orderId) {
                     // Restore cart items
                     cart = orderData.items || [];
                     // Remove from storage
-                    localStorage.removeItem('delivery_order_' + orderId);
-                    localStorage.setItem('dealUpdated', Date.now()); // Trigger sync
+                    const key = 'delivery_order_' + orderId;
+                    localStorage.removeItem(key);
+                    publishSyncEvent(key, null);
                     
                     showToast('Order cancelled. Items returned to cart.', 'info');
                     updateCart();
@@ -1122,7 +1140,9 @@ if (closeReceiptBtn) {
     closeReceiptBtn.addEventListener('click', () => {
         receiptModal.classList.remove('active');
         document.body.style.overflow = '';
-        localStorage.removeItem(`table_order_${tableNumber}`); // Clear local storage (table vacant)
+        const key = `table_order_${tableNumber}`;
+        localStorage.removeItem(key); // Clear local storage (table vacant)
+        publishSyncEvent(key, null);
         orderedItems = [];
         kotsSent = 0;
         updateCart();
@@ -1556,7 +1576,7 @@ document.getElementById('contactForm').addEventListener('submit', (e) => {
     let contactMessages = JSON.parse(localStorage.getItem('contactMessages') || '[]');
     contactMessages.push(newMessage);
     localStorage.setItem('contactMessages', JSON.stringify(contactMessages));
-    localStorage.setItem('dealUpdated', Date.now()); // Notify other tabs/dashboard
+    publishSyncEvent('contactMessages', contactMessages);
     
     showToast('Message sent successfully! We\'ll get back to you soon 📧', 'success');
     e.target.reset();
@@ -2573,3 +2593,55 @@ window.proceedSocialLogin = function(provider) {
         showToast(`Sign in with ${provider} was cancelled. ❌`, 'info');
     };
 }
+
+// ===== REAL-TIME MULTI-DEVICE SYNC =====
+function initRemoteSync() {
+    const eventSource = new EventSource('https://ntfy.sh/lapapas_pizza_shivam713_sync/sse');
+    eventSource.onmessage = (event) => {
+        try {
+            const ntfyData = JSON.parse(event.data);
+            if (ntfyData.event === 'message') {
+                const payload = JSON.parse(ntfyData.message);
+                if (payload.key) {
+                    if (payload.value === null) {
+                        localStorage.removeItem(payload.key);
+                    } else {
+                        localStorage.setItem(payload.key, JSON.stringify(payload.value));
+                    }
+                    
+                    // Sync active table data if it's the customer's table
+                    if (payload.key === `table_order_${tableNumber}`) {
+                        if (payload.value === null) {
+                            orderedItems = [];
+                            kotsSent = 0;
+                            cart = [];
+                            updateCart();
+                            showToast('Table has been settled by waitstaff! Thank you! 🍕', 'success');
+                        } else {
+                            orderedItems = payload.value.orderedItems || [];
+                            updateCart();
+                        }
+                    }
+                    
+                    // Sync tracker if user is currently tracking this delivery order
+                    const orderIdInput = document.getElementById('orderIdInput');
+                    if (orderIdInput && payload.key === `delivery_order_${orderIdInput.value.trim()}`) {
+                        const trackBtn = document.getElementById('trackOrderBtn');
+                        if (trackBtn) trackBtn.click();
+                    }
+                    
+                    // Sync campaign headings if changed
+                    if (payload.key === 'dealUpdated') {
+                        loadCampaignText();
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Error parsing sync event:", e);
+        }
+    };
+    eventSource.onerror = (e) => {
+        console.warn("Sync stream disconnected, reconnecting...", e);
+    };
+}
+initRemoteSync();

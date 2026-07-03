@@ -1,0 +1,2222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Papa's Pizza | Live Waiter Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // Protect dashboard from unauthorized access
+        if (localStorage.getItem('isAdminLoggedIn') !== 'true') {
+            alert("Access Denied! Please login as Admin on the main website.");
+            window.location.href = 'index.html';
+        }
+
+        // Apply theme early to prevent screen flash
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+    <style>
+        :root {
+            --primary: #ff4d00;
+            --primary-dark: #e04400;
+            --bg-dark: #090909;
+            --bg-surface: #121212;
+            --bg-card: #181818;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #606060;
+            --border-color: rgba(255,255,255,0.06);
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --status-vacant: #2ecc71;
+            --status-occupied: #f1c40f;
+            --status-billing: #e74c3c;
+            --btn-secondary-bg: rgba(255,255,255,0.04);
+            --btn-secondary-hover-bg: rgba(255,255,255,0.08);
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f8f9fa;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #495057;
+            --text-muted: #868e96;
+            --border-color: rgba(0,0,0,0.08);
+            --btn-secondary-bg: rgba(0,0,0,0.04);
+            --btn-secondary-hover-bg: rgba(0,0,0,0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        header {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .header-logo i {
+            color: var(--primary);
+        }
+
+        .header-logo span span {
+            color: var(--primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--btn-secondary-hover-bg);
+        }
+
+        .btn-success {
+            background: var(--status-vacant);
+        }
+        .btn-success:hover {
+            background: #27ae60;
+        }
+
+        /* Dashboard Workspace Layout */
+        .dashboard-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        /* Floor Map Section */
+        .floor-section {
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--secondary);
+        }
+
+        /* Status Indicators bar */
+        .status-bar {
+            display: flex;
+            gap: 24px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.vacant { background-color: var(--status-vacant); }
+        .dot.occupied { background-color: var(--status-occupied); }
+        .dot.billing { background-color: var(--status-billing); }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 24px;
+        }
+
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .table-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .table-card.active-table {
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        .table-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.03);
+            border: 3px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        /* Color Coding based on table state */
+        .table-card.vacant .table-icon {
+            border-color: var(--status-vacant);
+            color: var(--status-vacant);
+            background: rgba(46, 204, 113, 0.05);
+        }
+
+        .table-card.occupied .table-icon {
+            border-color: var(--status-occupied);
+            color: var(--status-occupied);
+            background: rgba(241, 196, 15, 0.05);
+            animation: pulse-border-yellow 2s infinite;
+        }
+
+        .table-card.billing .table-icon {
+            border-color: var(--status-billing);
+            color: var(--status-billing);
+            background: rgba(231, 76, 60, 0.05);
+            animation: pulse-border-red 2s infinite;
+        }
+
+        @keyframes pulse-border-yellow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.3); }
+            50% { box-shadow: 0 0 15px 5px rgba(241, 196, 15, 0.1); }
+        }
+
+        @keyframes pulse-border-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.3); }
+            50% { box-shadow: 0 0 15px 5px rgba(231, 76, 60, 0.1); }
+        }
+
+        .table-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .table-status-text {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .vacant .table-status-text { background: rgba(46, 204, 113, 0.1); color: var(--status-vacant); }
+        .occupied .table-status-text { background: rgba(241, 196, 15, 0.1); color: var(--status-occupied); }
+        .billing .table-status-text { background: rgba(231, 76, 60, 0.1); color: var(--status-billing); }
+
+        .table-bill-amount {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Order Details Side Panel */
+        .details-panel {
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .panel-header span {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .panel-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+
+        .order-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .order-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            font-size: 0.85rem;
+        }
+
+        .order-item-row.served {
+            opacity: 0.6;
+        }
+
+        .item-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .item-name {
+            font-weight: 600;
+        }
+
+        .item-qty {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .item-price {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .panel-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .bill-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+        }
+
+        .summary-row.total {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--secondary);
+            border-top: 1px dashed var(--border-color);
+            padding-top: 8px;
+            margin-top: 4px;
+        }
+
+        .no-selection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+            gap: 16px;
+            padding: 40px;
+        }
+
+        .no-selection i {
+            font-size: 3rem;
+        }
+
+        /* User Manager Modal styling */
+        .user-manager-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 24px;
+        }
+        @media (max-width: 768px) {
+            .user-manager-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .user-table th, .user-table td {
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        .user-table tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+        .btn-danger {
+            background: var(--status-billing);
+            color: white;
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        /* Modal Tabs */
+        .modal-tabs-container {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .modal-tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 10px 5px;
+            cursor: pointer;
+            position: relative;
+            font-family: inherit;
+        }
+        .modal-tab-btn.active {
+            color: var(--primary);
+        }
+        .modal-tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary);
+        }
+        .deal-preview-img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Delivery Card style */
+        .delivery-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+        }
+        .delivery-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+        }
+        .delivery-card.active-delivery {
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+        .delivery-status-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-confirmed { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+        .status-preparing { background: rgba(155, 89, 182, 0.15); color: #9b59b6; }
+        .status-baking { background: rgba(230, 126, 34, 0.15); color: #e67e22; }
+        .status-outfordelivery { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+        .status-delivered { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
+
+        /* Order History Responsiveness */
+        .history-modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            width: 95%;
+            max-width: 950px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        @media (min-width: 768px) {
+            .history-modal-content {
+                padding: 30px;
+                width: 90%;
+            }
+        }
+        .history-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        @media (min-width: 768px) {
+            .history-cards-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .history-order-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: border-color 0.2s;
+        }
+        .history-order-card:hover {
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="header-logo">
+            <i class="fas fa-pizza-slice"></i>
+            <span>La Papa's <span>Pizza</span></span>
+        </a>
+        <div class="header-actions">
+            <button class="btn btn-secondary btn-icon-only" id="themeToggle" aria-label="Toggle Theme" style="border-radius: 50%; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="btn btn-secondary" onclick="openOfferManager()"><i class="fas fa-tags"></i> Edit Offers Text</button>
+            <button class="btn btn-secondary" onclick="openUserManager()"><i class="fas fa-users"></i> Manage Users</button>
+            <button class="btn btn-secondary" onclick="openOrderHistory()"><i class="fas fa-history"></i> Order History</button>
+            <button class="btn btn-secondary" onclick="openCommentsManager()"><i class="fas fa-comments"></i> Comments / Issues <span id="commentsBadgeCount" style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 50%; font-size: 0.7rem; margin-left: 4px; display: none;">0</span></button>
+            <a href="qr-generator.html" class="btn btn-secondary"><i class="fas fa-qrcode"></i> Generate QR Codes</a>
+            <button class="btn btn-secondary" onclick="logoutAdmin()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            <button class="btn" onclick="clearAllTables()"><i class="fas fa-trash-alt"></i> Reset Tables</button>
+        </div>
+    </header>
+
+    <div class="dashboard-body">
+        <!-- Restaurant Floor Plan Map / Deliveries -->
+        <section class="floor-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn" id="btnShowTables" onclick="toggleDashboardView('tables')" style="border-radius: var(--radius-md); font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-chair"></i> Live Tables
+                    </button>
+                    <button class="btn btn-secondary" id="btnShowDeliveries" onclick="toggleDashboardView('deliveries')" style="border-radius: var(--radius-md); font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-motorcycle"></i> Home Deliveries <span id="deliveryBadgeCount" style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 50%; font-size: 0.7rem; margin-left: 4px; display: none;">0</span>
+                    </button>
+                    <button class="btn btn-success" id="deliveryStatusToggleBtn" onclick="toggleDeliveryAvailability()" style="border-radius: var(--radius-md); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; border: none; height: 38px; font-size: 0.85rem; padding: 0 16px;">
+                        <i class="fas fa-toggle-on"></i> Delivery Service: ON
+                    </button>
+                </div>
+                <div class="status-bar" id="tablesStatusBar">
+                    <div class="status-indicator"><span class="dot vacant"></span> Vacant</div>
+                    <div class="status-indicator"><span class="dot occupied"></span> Eating / Cooking</div>
+                    <div class="status-indicator"><span class="dot billing"></span> Bill Requested</div>
+                </div>
+            </div>
+            
+            <!-- Tables View Grid -->
+            <div class="tables-grid" id="tablesGrid">
+                <!-- 10 Tables injected dynamically -->
+            </div>
+
+            <!-- Deliveries View Grid -->
+            <div id="deliveriesGrid" style="display: none; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;">
+                <!-- Delivery orders injected dynamically -->
+            </div>
+        </section>
+
+        <!-- Dynamic Detailed Table View panel -->
+        <section class="details-panel" id="detailsPanel">
+            <div class="no-selection">
+                <i class="fas fa-utensils"></i>
+                <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Alert sound for incoming orders -->
+    <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav" preload="auto"></audio>
+
+    <!-- Offers & Deals Manager Modal -->
+    <div class="modal-overlay" id="offerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div class="modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 30px; width: 90%; max-width: 850px; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <button onclick="closeOfferManager()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-primary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;"><i class="fas fa-times"></i></button>
+            
+            <h3 style="margin-bottom: 20px; font-weight: 700; font-size: 1.4rem; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-tags"></i> Deals & Campaigns Manager
+            </h3>
+            
+            <div class="modal-tabs-container">
+                <button class="modal-tab-btn active" id="tabCampaignBtn" onclick="switchDealsTab('campaign')">Campaign Headings</button>
+                <button class="modal-tab-btn" id="tabDealsBtn" onclick="switchDealsTab('deals')">Manage Deal Cards</button>
+            </div>
+            
+            <!-- Tab 1: Campaign Headings -->
+            <div id="tabCampaignContent" style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Campaign Badge (e.g. 🔥 Hot Deals)</label>
+                    <input type="text" id="mCampaignBadge" placeholder="e.g. 🪔 Diwali Special" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Title Prefix</label>
+                        <input type="text" id="mTitlePrefix" placeholder="e.g. Diwali" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Title Highlighted</label>
+                        <input type="text" id="mTitleHighlight" placeholder="e.g. Festive Offers" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Campaign Description / Subtitle</label>
+                    <textarea id="mCampaignSubtitle" placeholder="e.g. Celebrate Diwali with our amazing limited time deals!" rows="3" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; resize: none; width: 100%; box-sizing: border-box; font-family: inherit;"></textarea>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Google Client ID (for Google Sign-In)</label>
+                    <input type="text" id="mGoogleClientId" placeholder="e.g. xxxxx.apps.googleusercontent.com" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-secondary" onclick="closeOfferManager()" style="flex: 1; justify-content: center;">Cancel</button>
+                    <button class="btn" onclick="saveOfferSettings()" style="flex: 1; justify-content: center;">Save Headings</button>
+                </div>
+                <button onclick="resetOfferSettings()" style="font-size: 0.75rem; border: none; margin-top: 5px; color: var(--text-muted); background: transparent; padding: 0; align-self: center; cursor: pointer; text-decoration: underline; font-family: inherit;">Reset Headings to Default</button>
+            </div>
+            
+            <!-- Tab 2: Manage Deal Cards -->
+            <div id="tabDealsContent" style="display: none;">
+                <div class="user-manager-grid">
+                    <!-- Left: Add Deal Form -->
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; text-align: left;">
+                        <h4 id="dealFormTitle" style="margin-bottom: 15px; font-weight: 600; color: var(--primary); font-size: 1.1rem;">Add New Deal</h4>
+                        <form id="adminDealForm" onsubmit="saveDealCard(event)">
+                            <input type="hidden" id="editDealIndex" value="-1">
+                            <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Deal Title</label>
+                                <input type="text" id="dealTitleInput" placeholder="e.g. Mega Deal" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                            </div>
+                            <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Description</label>
+                                <input type="text" id="dealDescInput" placeholder="e.g. 2 Large Pizzas + Garlic Bread" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Badge / Label</label>
+                                    <input type="text" id="dealBadgeInput" placeholder="e.g. 50% OFF" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                                </div>
+                                <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Timer (Hours)</label>
+                                    <input type="number" id="dealTimerInput" placeholder="e.g. 5 (Optional)" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Original Price (₹)</label>
+                                    <input type="number" id="dealOldPriceInput" placeholder="e.g. 1299" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                                </div>
+                                <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Offer Price (₹)</label>
+                                    <input type="number" id="dealNewPriceInput" placeholder="e.g. 649" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                                </div>
+                            </div>
+                            <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px;">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Image URL</label>
+                                <input type="text" id="dealImageInput" placeholder="Enter image link (Optional)" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-secondary" type="button" onclick="cancelDealEdit()" style="flex: 1; justify-content: center;">Cancel</button>
+                                <button class="btn" type="submit" id="saveDealBtn" style="flex: 1; justify-content: center;">Add Deal</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Right: Deals Table/List -->
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <h4 style="font-weight: 600; color: var(--primary); font-size: 1.1rem; margin-bottom: 5px; text-align: left;">Current Deal Cards</h4>
+                        <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                            <table class="user-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+                                <thead>
+                                    <tr>
+                                        <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Image</th>
+                                        <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Deal</th>
+                                        <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Price</th>
+                                        <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color); text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminDealsTableBody">
+                                    <!-- Dynamic deals injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Manager Modal -->
+    <div class="user-modal-overlay" id="userManagerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div class="user-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 30px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <button onclick="closeUserManager()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-primary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;"><i class="fas fa-times"></i></button>
+            <h3 style="margin-bottom: 20px; font-weight: 700; font-size: 1.4rem; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-users"></i> Manage User Accounts
+            </h3>
+            
+            <div class="user-manager-grid">
+                <!-- Create User Column -->
+                <div class="user-form-container" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px;">
+                    <h4 style="margin-bottom: 15px; font-weight: 600; color: var(--primary); font-size: 1.1rem;">Create New Account</h4>
+                    <form id="adminCreateUserForm" onsubmit="createUserFromAdmin(event)">
+                        <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Full Name</label>
+                            <input type="text" id="adminNewUserName" placeholder="Enter full name" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                        </div>
+                        <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Email Address</label>
+                            <input type="email" id="adminNewUserEmail" placeholder="Enter email" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                        </div>
+                        <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Phone Number</label>
+                            <input type="tel" id="adminNewUserPhone" placeholder="Enter phone number" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                        </div>
+                        <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Password</label>
+                            <input type="text" id="adminNewUserPassword" placeholder="Enter password" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem;">
+                        </div>
+                        <div class="form-group-custom" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Account Type</label>
+                            <select id="adminNewUserRole" style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; width: 100%; box-sizing: border-box;">
+                                <option value="customer">Customer</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button class="btn" type="submit" style="width: 100%; justify-content: center; border: none; font-weight: 600; font-family: inherit;">
+                            <i class="fas fa-user-plus"></i> Create Account
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Users List Column -->
+                <div class="user-list-container" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                    <h4 style="font-weight: 600; color: var(--primary); font-size: 1.1rem; margin-bottom: 5px;">Registered Users</h4>
+                    <div class="user-table-wrapper" style="overflow-x: auto; max-height: 350px; overflow-y: auto;">
+                        <table class="user-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+                            <thead>
+                                <tr>
+                                    <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Name</th>
+                                    <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Email</th>
+                                    <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Phone</th>
+                                    <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Role</th>
+                                    <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color);">Password</th>
+                                    <th style="background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; padding: 12px 8px; border-bottom: 2px solid var(--border-color); text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUserTableBody">
+                                <!-- Users injected here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order History Modal -->
+    <div class="user-modal-overlay" id="orderHistoryModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div class="history-modal-content">
+            <button onclick="closeOrderHistory()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-primary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;"><i class="fas fa-times"></i></button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-weight: 700; font-size: 1.4rem; color: var(--primary); display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <i class="fas fa-history"></i> Order Settlement History
+                </h3>
+            </div>
+            
+            <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="historySearchInput" placeholder="Search orders (ID, address, items)..." oninput="renderOrderHistoryList()" style="flex: 1; min-width: 200px; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem;">
+                <select id="historyFilterType" onchange="renderOrderHistoryList()" style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                    <option value="all">All Orders</option>
+                    <option value="dinein">Dine-In Tables</option>
+                    <option value="delivery">Home Deliveries</option>
+                </select>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Filter Date:</span>
+                    <input type="date" id="historyFilterDate" onchange="renderOrderHistoryList()" style="padding: 9px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                    <button class="btn btn-secondary" onclick="setHistoryDateToToday()" style="font-size: 0.8rem; padding: 10px 12px; height: 38px; border-radius: var(--radius-md);"><i class="fas fa-calendar-day"></i> Today</button>
+                    <button class="btn btn-secondary" onclick="resetHistoryDate()" style="font-size: 0.8rem; padding: 10px 12px; height: 38px; border-radius: var(--radius-md);"><i class="fas fa-undo"></i> Reset Date</button>
+                </div>
+            </div>
+            
+            <!-- Responsive History Cards List -->
+            <div class="history-cards-grid" id="orderHistoryCardsGrid">
+                <!-- Cards populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Modal -->
+    <div class="user-modal-overlay" id="commentsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div class="history-modal-content" style="max-width: 900px;">
+            <button onclick="closeCommentsManager()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-primary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;"><i class="fas fa-times"></i></button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <h3 style="font-weight: 700; font-size: 1.4rem; color: var(--primary); display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <i class="fas fa-comments"></i> Customer Comments & Issues
+                </h3>
+                <button class="btn btn-danger" onclick="clearAllComments()" style="font-size: 0.8rem; border-radius: var(--radius-md);"><i class="fas fa-trash-alt"></i> Clear All</button>
+            </div>
+            
+            <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="commentsSearchInput" placeholder="Search comments (name, email, message)..." oninput="renderCommentsList()" style="flex: 1; min-width: 200px; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem;">
+                <select id="commentsFilterSubject" onchange="renderCommentsList()" style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                    <option value="all">All Subjects</option>
+                    <option value="order">Order Issue</option>
+                    <option value="feedback">Feedback</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="careers">Careers</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <!-- Comments Cards List -->
+            <div class="history-cards-grid" id="commentsCardsGrid">
+                <!-- Cards populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const totalTables = 10;
+        let selectedTable = null;
+        let tablesState = {};
+
+        // Sound alert
+        const alertSound = document.getElementById('alertSound');
+
+        let activeDeliveryOrderId = null;
+        let dashboardViewMode = 'tables'; // 'tables' or 'deliveries'
+        let previousDeliveryCount = 0;
+
+        function loadTablesState() {
+            let stateChanged = false;
+            for (let t = 1; t <= totalTables; t++) {
+                const stored = localStorage.getItem(`table_order_${t}`);
+                const parsed = stored ? JSON.parse(stored) : null;
+                const previousState = tablesState[t];
+                
+                // Alert if state changes
+                if (JSON.stringify(previousState) !== JSON.stringify(parsed)) {
+                    if (parsed && previousState && parsed.orderedItems.length > previousState.orderedItems.length) {
+                        try { alertSound.play(); } catch(e){}
+                    }
+                    stateChanged = true;
+                }
+                tablesState[t] = parsed;
+            }
+            if (stateChanged || !document.getElementById('tablesGrid').children.length) {
+                renderTables();
+                if (selectedTable) {
+                    renderDetailsPanel(selectedTable);
+                }
+            }
+            
+            updateDeliveryBadgeCount();
+            updateCommentsBadgeCount();
+            
+            if (dashboardViewMode === 'deliveries') {
+                renderDeliveriesGrid();
+            }
+        }
+
+        function renderTables() {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = '';
+            
+            for (let t = 1; t <= totalTables; t++) {
+                const state = tablesState[t];
+                let cssClass = 'vacant';
+                let statusText = 'Vacant';
+                let billAmount = '';
+                
+                if (state && state.orderedItems && state.orderedItems.length > 0) {
+                    cssClass = state.status === 'billing' ? 'billing' : 'occupied';
+                    statusText = state.status === 'billing' ? 'Bill Awaiting' : 'Eating';
+                    
+                    const subtotal = state.orderedItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+                    const total = Math.round(subtotal * 1.05);
+                    billAmount = `₹${total}`;
+                }
+                
+                const card = document.createElement('div');
+                card.className = `table-card ${cssClass} ${selectedTable === t ? 'active-table' : ''}`;
+                card.setAttribute('data-table', t);
+                card.onclick = () => selectTable(t);
+                card.innerHTML = `
+                    <div class="table-icon">
+                        <i class="fas fa-mug-hot"></i>
+                    </div>
+                    <div class="table-label">Table ${t}</div>
+                    <div class="table-status-text">${statusText}</div>
+                    <div class="table-bill-amount">${billAmount}</div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function selectTable(t) {
+            selectedTable = t;
+            // Update selected indicator on grid using data-table attribute
+            document.querySelectorAll('.table-card').forEach((c) => {
+                const tableId = parseInt(c.getAttribute('data-table'));
+                c.classList.toggle('active-table', tableId === t);
+            });
+            renderDetailsPanel(t);
+        }
+
+        function renderDetailsPanel(t) {
+            const panel = document.getElementById('detailsPanel');
+            const state = tablesState[t];
+            
+            if (!state || !state.orderedItems || state.orderedItems.length === 0) {
+                panel.innerHTML = `
+                    <div class="panel-header">
+                        <h3>Table ${t} Details</h3>
+                        <span style="background: rgba(46, 204, 113, 0.1); color: var(--status-vacant);">Vacant</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="no-selection">
+                            <i class="fas fa-couch"></i>
+                            <p>No active orders for Table ${t}.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let statusText = state.status === 'billing' ? 'Bill Requested' : 'Active Eating';
+            let statusColor = state.status === 'billing' ? 'var(--status-billing)' : 'var(--status-occupied)';
+            let statusBg = state.status === 'billing' ? 'rgba(231,76,60,0.15)' : 'rgba(241,196,15,0.15)';
+            
+            let itemsHtml = '';
+            state.orderedItems.forEach((item, index) => {
+                const isServed = item.served || false;
+                itemsHtml += `
+                    <div class="order-item-row ${isServed ? 'served' : ''}">
+                        <div class="item-meta">
+                            <span class="item-name">${item.name} (${item.size})</span>
+                            <span class="item-qty">Qty: ${item.qty}</span>
+                        </div>
+                        <div class="item-actions">
+                            <span class="item-price">₹${item.price * item.qty}</span>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem; border-radius: 4px;" onclick="toggleItemServed(${t}, ${index})">
+                                ${isServed ? '<i class="fas fa-undo"></i> Served' : '<i class="fas fa-check"></i> Serve'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const subtotal = state.orderedItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const total = subtotal;
+            
+            const upiId = '9026160186@paytm'; 
+            const merchantName = 'La Papas Pizza';
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${total}&cu=INR&tn=Table%20${t}`;
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;
+
+            let paymentSectionHtml = `
+                <div class="payment-method-selector" style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+                    <h4 class="panel-section-title" style="margin-bottom: 10px;">Select Payment Method</h4>
+                    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                        <label class="btn btn-secondary pay-method-label active-pay" style="flex: 1; padding: 8px; font-size: 0.8rem; border-radius: 8px; justify-content: center; cursor: pointer; background: var(--primary); color: white; border-color: var(--primary);">
+                            <input type="radio" name="payMethod" value="cash" checked style="display:none;" onchange="toggleDashboardPayMode('cash')"> 💵 Cash
+                        </label>
+                        <label class="btn btn-secondary pay-method-label" style="flex: 1; padding: 8px; font-size: 0.8rem; border-radius: 8px; justify-content: center; cursor: pointer; background: rgba(255,255,255,0.04); color: var(--text-primary); border-color: var(--border-color);">
+                            <input type="radio" name="payMethod" value="upi" style="display:none;" onchange="toggleDashboardPayMode('upi')"> ⚡ UPI QR
+                        </label>
+                        <label class="btn btn-secondary pay-method-label" style="flex: 1; padding: 8px; font-size: 0.8rem; border-radius: 8px; justify-content: center; cursor: pointer; background: rgba(255,255,255,0.04); color: var(--text-primary); border-color: var(--border-color);">
+                            <input type="radio" name="payMethod" value="card" style="display:none;" onchange="toggleDashboardPayMode('card')"> 💳 Card
+                        </label>
+                    </div>
+                    <div id="dashboardUpiQr" style="display: none; text-align: center; margin-bottom: 15px; background: white; padding: 10px; border-radius: var(--radius-md); max-width: 170px; margin-left: auto; margin-right: auto;">
+                        <img src="${qrCodeUrl}" alt="UPI QR" style="width: 150px; height: 150px; display: block; margin: 0 auto;">
+                        <p style="color: black; font-size: 0.7rem; margin-top: 6px; font-weight: 600; font-family: sans-serif;">Scan to Pay ₹${total}</p>
+                    </div>
+                </div>
+            `;
+            
+            panel.innerHTML = `
+                <div class="panel-header">
+                    <h3>Table ${t} Details</h3>
+                    <span style="background: ${statusBg}; color: ${statusColor};">${statusText}</span>
+                </div>
+                <div class="panel-body">
+                    <div>
+                        <h4 class="panel-section-title">Kitchen Order Tickets (KOT)</h4>
+                        <div class="order-items-list">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="bill-summary">
+                        <div class="summary-row"><span>Subtotal:</span><span>₹${subtotal}</span></div>
+                        <div class="summary-row total"><span>Grand Total:</span><span>₹${total}</span></div>
+                    </div>
+                    ${paymentSectionHtml}
+                    <button class="btn btn-success btn-lg" onclick="settleTableBill(${t})" style="width: 100%; justify-content: center; margin-top: 10px;">
+                        <i class="fas fa-check-double"></i> Settle Bill & Clear Table
+                    </button>
+                </div>
+            `;
+        }
+
+        function toggleDashboardPayMode(mode) {
+            const qrDiv = document.getElementById('dashboardUpiQr');
+            if (qrDiv) {
+                qrDiv.style.display = (mode === 'upi') ? 'block' : 'none';
+            }
+            
+            // Highlight active button
+            const radios = document.querySelectorAll('input[name="payMethod"]');
+            radios.forEach(radio => {
+                const label = radio.closest('label');
+                if (radio.value === mode) {
+                    label.style.background = 'var(--primary)';
+                    label.style.borderColor = 'var(--primary)';
+                    label.style.color = 'white';
+                } else {
+                    label.style.background = 'rgba(255,255,255,0.04)';
+                    label.style.borderColor = 'var(--border-color)';
+                    label.style.color = 'var(--text-primary)';
+                }
+            });
+        }
+
+        function toggleItemServed(t, itemIndex) {
+            const state = tablesState[t];
+            if (!state) return;
+            
+            state.orderedItems[itemIndex].served = !(state.orderedItems[itemIndex].served || false);
+            localStorage.setItem(`table_order_${t}`, JSON.stringify(state));
+            loadTablesState();
+        }
+
+        function settleTableBill(t) {
+            if (confirm(`Are you sure you want to settle the bill for Table ${t} and mark it vacant?`)) {
+                // Archive to history
+                const orderData = JSON.parse(localStorage.getItem(`table_order_${t}`));
+                if (orderData) {
+                    archiveToHistory({
+                        type: 'dinein',
+                        tableNum: t,
+                        items: orderData.orderedItems || [],
+                        subtotal: (orderData.orderedItems || []).reduce((sum, item) => sum + item.price * item.qty, 0),
+                        timestamp: Date.now()
+                    });
+                }
+                
+                localStorage.removeItem(`table_order_${t}`);
+                // Notify user tabs that bill was settled by deleting storage
+                loadTablesState();
+                if (selectedTable === t) selectedTable = null;
+                document.getElementById('detailsPanel').innerHTML = `
+                    <div class="no-selection">
+                        <i class="fas fa-utensils"></i>
+                        <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function clearAllTables() {
+            const input = prompt("Type a Table number (1-10) to clear its order, or type 'ALL' to reset all tables:");
+            if (input === null) return; // user cancelled
+
+            const choice = input.trim().toUpperCase();
+            if (choice === 'ALL') {
+                if (confirm("Are you sure you want to clear ALL table orders? This resets your entire restaurant!")) {
+                    for (let t = 1; t <= totalTables; t++) {
+                        localStorage.removeItem(`table_order_${t}`);
+                    }
+                    loadTablesState();
+                    selectedTable = null;
+                    document.getElementById('detailsPanel').innerHTML = `
+                        <div class="no-selection">
+                            <i class="fas fa-utensils"></i>
+                            <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                const tableId = parseInt(choice);
+                if (!isNaN(tableId) && tableId >= 1 && tableId <= totalTables) {
+                    if (confirm(`Are you sure you want to clear orders for Table ${tableId}?`)) {
+                        localStorage.removeItem(`table_order_${tableId}`);
+                        loadTablesState();
+                        if (selectedTable === tableId) {
+                            selectedTable = null;
+                            document.getElementById('detailsPanel').innerHTML = `
+                                <div class="no-selection">
+                                    <i class="fas fa-utensils"></i>
+                                    <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    alert("Invalid option! Please enter a number between 1 and 10, or 'ALL'.");
+                }
+            }
+        }
+
+        function injectMockDeliveryOrder() {
+            let hasDelivery = false;
+            for (let i = 0; i < localStorage.length; i++) {
+                if (localStorage.key(i).startsWith('delivery_order_')) {
+                    hasDelivery = true;
+                    break;
+                }
+            }
+            if (!hasDelivery) {
+                const mockOrderId = 'LP28491';
+                const mockOrder = {
+                    orderId: mockOrderId,
+                    items: [
+                        { name: "Margherita", price: 219, qty: 1, size: "medium" },
+                        { name: "Garlic Bread Sticks (6 pcs)", price: 95, qty: 2, size: "sides" }
+                    ],
+                    subtotal: 409,
+                    address: "Flat 402, Royal Residency, Sector 62, Noida",
+                    paymentMethod: "cash",
+                    status: "confirmed",
+                    timestamp: Date.now() - 600000
+                };
+                localStorage.setItem(`delivery_order_${mockOrderId}`, JSON.stringify(mockOrder));
+            }
+            
+            // Inject mock order history if empty
+            if (!localStorage.getItem('restaurantOrderHistory')) {
+                const mockHistory = [
+                    {
+                        type: 'dinein',
+                        tableNum: 3,
+                        items: [
+                            { name: "Farm Villa", price: 299, qty: 1, size: "medium" },
+                            { name: "Coke", price: 60, qty: 2, size: "beverages" }
+                        ],
+                        subtotal: 359,
+                        timestamp: Date.now() - 86400000 // 1 day ago
+                    },
+                    {
+                        type: 'delivery',
+                        orderId: 'LP92841',
+                        address: "H.No 120, Sector 15, Gurgaon",
+                        paymentMethod: "upi",
+                        items: [
+                            { name: "Peppy Paneer", price: 279, qty: 2, size: "medium" }
+                        ],
+                        subtotal: 558,
+                        timestamp: Date.now() - 3600000 * 3 // 3 hours ago
+                    }
+                ];
+                localStorage.setItem('restaurantOrderHistory', JSON.stringify(mockHistory));
+            }
+        }
+
+        // Initialize state check
+        injectMockDeliveryOrder();
+        loadDeliveryAvailability();
+        loadTablesState();
+        setInterval(loadTablesState, 1000); // Poll storage changes every 1s
+
+        // Real-time storage listener for other tabs
+        window.addEventListener('storage', loadTablesState);
+
+        // Theme Toggle Logic
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+
+        function updateThemeIcon() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            if (themeIcon) {
+                if (currentTheme === 'light') {
+                    themeIcon.className = 'fas fa-sun';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                }
+            }
+        }
+
+        updateThemeIcon();
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            document.documentElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('theme', nextTheme);
+            updateThemeIcon();
+        });
+
+        // ===== DEALS & CAMPAIGNS TAB SWITCHER =====
+        function switchDealsTab(tab) {
+            const tabCampaignBtn = document.getElementById('tabCampaignBtn');
+            const tabDealsBtn = document.getElementById('tabDealsBtn');
+            const tabCampaignContent = document.getElementById('tabCampaignContent');
+            const tabDealsContent = document.getElementById('tabDealsContent');
+            
+            if (tab === 'campaign') {
+                tabCampaignBtn.classList.add('active');
+                tabDealsBtn.classList.remove('active');
+                tabCampaignContent.style.display = 'flex';
+                tabDealsContent.style.display = 'none';
+            } else {
+                tabCampaignBtn.classList.remove('active');
+                tabDealsBtn.classList.add('active');
+                tabCampaignContent.style.display = 'none';
+                tabDealsContent.style.display = 'block';
+                loadDealsInAdmin();
+            }
+        }
+
+        // ===== DEALS CARD MANAGER FUNCTIONS =====
+        const defaultPizzaImg = "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=300&q=80";
+
+        function openOfferManager() {
+            document.getElementById('mCampaignBadge').value = localStorage.getItem('dealBadge') || '🔥 Hot Deals';
+            document.getElementById('mTitlePrefix').value = localStorage.getItem('dealTitlePrefix') || "Today's";
+            document.getElementById('mTitleHighlight').value = localStorage.getItem('dealTitleHighlight') || "Special Offers";
+            document.getElementById('mCampaignSubtitle').value = localStorage.getItem('dealSubtitle') || "Grab these amazing deals before they're gone!";
+            document.getElementById('mGoogleClientId').value = localStorage.getItem('googleClientId') || '';
+            
+            switchDealsTab('campaign');
+            document.getElementById('offerModal').style.display = 'flex';
+        }
+
+        function closeOfferManager() {
+            document.getElementById('offerModal').style.display = 'none';
+            cancelDealEdit();
+        }
+
+        function saveOfferSettings() {
+            const badge = document.getElementById('mCampaignBadge').value.trim();
+            const prefix = document.getElementById('mTitlePrefix').value.trim();
+            const highlight = document.getElementById('mTitleHighlight').value.trim();
+            const subtitle = document.getElementById('mCampaignSubtitle').value.trim();
+            const clientId = document.getElementById('mGoogleClientId').value.trim();
+
+            localStorage.setItem('dealBadge', badge || '🔥 Hot Deals');
+            localStorage.setItem('dealTitlePrefix', prefix || "Today's");
+            localStorage.setItem('dealTitleHighlight', highlight || "Special Offers");
+            localStorage.setItem('dealSubtitle', subtitle || "Grab these amazing deals before they're gone!");
+            localStorage.setItem('googleClientId', clientId);
+
+            localStorage.setItem('dealUpdated', Date.now());
+
+            alert("Campaign headings saved successfully! Customer site will update instantly.");
+            closeOfferManager();
+        }
+
+        function resetOfferSettings() {
+            if (confirm("Are you sure you want to reset all headings to default?")) {
+                localStorage.removeItem('dealBadge');
+                localStorage.removeItem('dealTitlePrefix');
+                localStorage.removeItem('dealTitleHighlight');
+                localStorage.removeItem('dealSubtitle');
+                localStorage.removeItem('googleClientId');
+                localStorage.setItem('dealUpdated', Date.now());
+                alert("Headings reset to default! Customer site will update instantly.");
+                closeOfferManager();
+            }
+        }
+
+        function loadDealsInAdmin() {
+            const tbody = document.getElementById('adminDealsTableBody');
+            tbody.innerHTML = '';
+            
+            let deals = JSON.parse(localStorage.getItem('customDeals'));
+            if (!deals || !Array.isArray(deals) || deals.length === 0) {
+                deals = [
+                    { id: 1, title: "Mega Deal", description: "2 Large Pizzas + Garlic Bread", badge: "50% OFF", oldPrice: 1299, newPrice: 649, image: defaultPizzaImg, timerHours: 5 },
+                    { id: 2, title: "Buy 1 Get 1 Free", description: "Any Medium Pizza - Get second absolutely free!", badge: "BOGO", oldPrice: 798, newPrice: 399, image: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=300&q=80", timerHours: null },
+                    { id: 3, title: "Combo Feast", description: "1 Large Pizza + Garlic Bread", badge: "20% OFF", oldPrice: 600, newPrice: 449, image: "https://images.unsplash.com/photo-1571066811602-716837d681de?auto=format&fit=crop&w=300&q=80", timerHours: null },
+                    { id: 4, title: "Party Pack", description: "4 Pizzas + 2 Garlic Breads - Perfect for parties!", badge: "NEW", oldPrice: 1600, newPrice: 1199, image: defaultPizzaImg, timerHours: null }
+                ];
+                localStorage.setItem('customDeals', JSON.stringify(deals));
+            }
+            
+            deals.forEach((deal, index) => {
+                const tr = document.createElement('tr');
+                const badgeLabel = deal.badge ? `<span style="background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-top: 4px;">${escapeHtml(deal.badge)}</span>` : '';
+                const oldPriceText = deal.oldPrice ? `<span style="text-decoration: line-through; color: var(--text-muted); margin-right: 6px;">₹${deal.oldPrice}</span>` : '';
+                const timerText = deal.timerHours ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"><i class="fas fa-clock"></i> ${deal.timerHours}h</div>` : '';
+                
+                tr.innerHTML = `
+                    <td style="padding: 10px 8px; vertical-align: middle;">
+                        <img src="${deal.image}" class="deal-preview-img" alt="${escapeHtml(deal.title)}">
+                    </td>
+                    <td style="padding: 10px 8px; vertical-align: middle; text-align: left;">
+                        <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(deal.title)}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${escapeHtml(deal.description)}</div>
+                        ${badgeLabel}
+                    </td>
+                    <td style="padding: 10px 8px; vertical-align: middle; font-weight: 700; color: var(--text-primary);">
+                        ${oldPriceText}
+                        <span>₹${deal.newPrice}</span>
+                        ${timerText}
+                    </td>
+                    <td style="padding: 10px 8px; vertical-align: middle; text-align: center;">
+                        <div style="display: flex; gap: 6px; justify-content: center;">
+                            <button class="btn btn-secondary" onclick="editDealCard(${index})" style="padding: 6px 10px; font-size: 0.8rem;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn-danger" onclick="deleteDealCard(${index})" style="padding: 6px 10px; font-size: 0.8rem;">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editDealCard(index) {
+            let deals = JSON.parse(localStorage.getItem('customDeals') || '[]');
+            const deal = deals[index];
+            if (!deal) return;
+            
+            document.getElementById('editDealIndex').value = index;
+            document.getElementById('dealTitleInput').value = deal.title;
+            document.getElementById('dealDescInput').value = deal.description;
+            document.getElementById('dealBadgeInput').value = deal.badge || '';
+            document.getElementById('dealTimerInput').value = deal.timerHours || '';
+            document.getElementById('dealOldPriceInput').value = deal.oldPrice || '';
+            document.getElementById('dealNewPriceInput').value = deal.newPrice;
+            document.getElementById('dealImageInput').value = deal.image === defaultPizzaImg ? '' : deal.image;
+            
+            document.getElementById('dealFormTitle').textContent = "Edit Deal Card";
+            document.getElementById('saveDealBtn').textContent = "Save Changes";
+        }
+
+        function cancelDealEdit() {
+            document.getElementById('editDealIndex').value = "-1";
+            document.getElementById('adminDealForm').reset();
+            document.getElementById('dealFormTitle').textContent = "Add New Deal";
+            document.getElementById('saveDealBtn').textContent = "Add Deal";
+        }
+
+        function saveDealCard(e) {
+            e.preventDefault();
+            const index = parseInt(document.getElementById('editDealIndex').value);
+            
+            const title = document.getElementById('dealTitleInput').value.trim();
+            const description = document.getElementById('dealDescInput').value.trim();
+            const badge = document.getElementById('dealBadgeInput').value.trim();
+            const timerVal = document.getElementById('dealTimerInput').value;
+            const oldPriceVal = document.getElementById('dealOldPriceInput').value;
+            const newPrice = parseInt(document.getElementById('dealNewPriceInput').value);
+            let image = document.getElementById('dealImageInput').value.trim();
+            
+            if (!image) {
+                image = defaultPizzaImg;
+            }
+            
+            const timerHours = timerVal ? parseInt(timerVal) : null;
+            const oldPrice = oldPriceVal ? parseInt(oldPriceVal) : null;
+            
+            let deals = JSON.parse(localStorage.getItem('customDeals') || '[]');
+            
+            const dealData = {
+                id: index >= 0 ? deals[index].id : Date.now(),
+                title,
+                description,
+                badge,
+                oldPrice,
+                newPrice,
+                image,
+                timerHours
+            };
+            
+            if (index >= 0) {
+                deals[index] = dealData;
+                alert("Deal card updated successfully! 🎉");
+            } else {
+                deals.push(dealData);
+                alert("New deal card added successfully! 🎉");
+            }
+            
+            localStorage.setItem('customDeals', JSON.stringify(deals));
+            localStorage.setItem('dealUpdated', Date.now());
+            
+            cancelDealEdit();
+            loadDealsInAdmin();
+        }
+
+        function deleteDealCard(index) {
+            let deals = JSON.parse(localStorage.getItem('customDeals') || '[]');
+            const title = deals[index] ? deals[index].title : "this deal";
+            
+            if (confirm(`Are you sure you want to delete the deal card "${title}"?`)) {
+                deals.splice(index, 1);
+                localStorage.setItem('customDeals', JSON.stringify(deals));
+                localStorage.setItem('dealUpdated', Date.now());
+                loadDealsInAdmin();
+                cancelDealEdit();
+            }
+        }
+
+        // ===== USER MANAGER FUNCTIONS =====
+        function openUserManager() {
+            renderAdminUsersList();
+            document.getElementById('userManagerModal').style.display = 'flex';
+        }
+
+        function closeUserManager() {
+            document.getElementById('userManagerModal').style.display = 'none';
+            document.getElementById('adminCreateUserForm').reset();
+        }
+
+        function renderAdminUsersList() {
+            const tbody = document.getElementById('adminUserTableBody');
+            tbody.innerHTML = '';
+            
+            const customers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+            const admins = JSON.parse(localStorage.getItem('adminUsers') || '[]');
+            
+            if (customers.length === 0 && admins.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px 10px;">
+                            <i class="fas fa-user-slash" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
+                            No users registered yet.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Render Admins first
+            admins.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 12px 8px; font-weight: 500;">${escapeHtml(user.name)}</td>
+                    <td style="padding: 12px 8px; color: var(--text-secondary); word-break: break-all;">${escapeHtml(user.email)}</td>
+                    <td style="padding: 12px 8px; color: var(--text-secondary);">${escapeHtml(user.phone)}</td>
+                    <td style="padding: 12px 8px;"><span style="background: rgba(231, 76, 60, 0.15); color: var(--status-billing); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Admin</span></td>
+                    <td style="padding: 12px 8px; font-family: monospace; color: var(--text-secondary);">${escapeHtml(user.password)}</td>
+                    <td style="padding: 12px 8px; text-align: center;">
+                        <button class="btn-danger" onclick="deleteUserFromAdmin(${index}, 'admin')">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Render Customers
+            customers.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 12px 8px; font-weight: 500;">${escapeHtml(user.name)}</td>
+                    <td style="padding: 12px 8px; color: var(--text-secondary); word-break: break-all;">${escapeHtml(user.email)}</td>
+                    <td style="padding: 12px 8px; color: var(--text-secondary);">${escapeHtml(user.phone)}</td>
+                    <td style="padding: 12px 8px;"><span style="background: rgba(46, 204, 113, 0.15); color: var(--status-vacant); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">Customer</span></td>
+                    <td style="padding: 12px 8px; font-family: monospace; color: var(--text-secondary);">${escapeHtml(user.password)}</td>
+                    <td style="padding: 12px 8px; text-align: center;">
+                        <button class="btn-danger" onclick="deleteUserFromAdmin(${index}, 'customer')">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function createUserFromAdmin(e) {
+            e.preventDefault();
+            
+            const adminPass = prompt("Enter default admin password to confirm account creation:");
+            if (adminPass === null) {
+                return; // Admin cancelled the prompt
+            }
+            if (adminPass !== 'admin') {
+                alert("Incorrect password! Authorization failed. ❌");
+                return;
+            }
+
+            const nameVal = document.getElementById('adminNewUserName').value.trim();
+            const emailVal = document.getElementById('adminNewUserEmail').value.trim();
+            const phoneVal = document.getElementById('adminNewUserPhone').value.trim();
+            const passwordVal = document.getElementById('adminNewUserPassword').value;
+            const roleVal = document.getElementById('adminNewUserRole').value;
+            
+            if (roleVal === 'admin') {
+                let admins = JSON.parse(localStorage.getItem('adminUsers') || '[]');
+                const emailExists = admins.some(u => u.email.toLowerCase() === emailVal.toLowerCase());
+                if (emailExists) {
+                    alert("Admin account with this email already exists! ❌");
+                    return;
+                }
+                admins.push({
+                    name: nameVal,
+                    email: emailVal,
+                    phone: phoneVal,
+                    password: passwordVal
+                });
+                localStorage.setItem('adminUsers', JSON.stringify(admins));
+                alert(`Admin account for ${nameVal} created successfully! 👑`);
+            } else {
+                let customers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+                const emailExists = customers.some(u => u.email.toLowerCase() === emailVal.toLowerCase());
+                if (emailExists) {
+                    alert("Customer account with this email already exists! ❌");
+                    return;
+                }
+                customers.push({
+                    name: nameVal,
+                    email: emailVal,
+                    phone: phoneVal,
+                    password: passwordVal
+                });
+                localStorage.setItem('registeredUsers', JSON.stringify(customers));
+                alert(`Customer account for ${nameVal} created successfully! 🎉`);
+            }
+            
+            // Reset form
+            document.getElementById('adminCreateUserForm').reset();
+            
+            // Refresh list
+            renderAdminUsersList();
+        }
+
+        function deleteUserFromAdmin(index, type) {
+            const storageKey = type === 'admin' ? 'adminUsers' : 'registeredUsers';
+            let users = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const userName = users[index] ? users[index].name : "this user";
+            
+            if (confirm(`Are you sure you want to delete ${userName}'s ${type} account?`)) {
+                users.splice(index, 1);
+                localStorage.setItem(storageKey, JSON.stringify(users));
+                renderAdminUsersList();
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ===== HOME DELIVERIES MANAGER =====
+        function toggleDashboardView(mode) {
+            dashboardViewMode = mode;
+            const btnTables = document.getElementById('btnShowTables');
+            const btnDeliveries = document.getElementById('btnShowDeliveries');
+            const gridTables = document.getElementById('tablesGrid');
+            const gridDeliveries = document.getElementById('deliveriesGrid');
+            const barTables = document.getElementById('tablesStatusBar');
+            
+            if (mode === 'tables') {
+                btnTables.className = 'btn';
+                btnDeliveries.className = 'btn btn-secondary';
+                gridTables.style.display = 'grid';
+                gridDeliveries.style.display = 'none';
+                barTables.style.display = 'flex';
+            } else {
+                btnTables.className = 'btn btn-secondary';
+                btnDeliveries.className = 'btn';
+                gridTables.style.display = 'none';
+                gridDeliveries.style.display = 'grid';
+                barTables.style.display = 'none';
+                renderDeliveriesGrid();
+            }
+        }
+
+        function updateDeliveryBadgeCount() {
+            let count = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                if (localStorage.key(i).startsWith('delivery_order_')) {
+                    count++;
+                }
+            }
+            
+            if (count > previousDeliveryCount) {
+                try { alertSound.play(); } catch(e){}
+            }
+            previousDeliveryCount = count;
+            
+            const countBadge = document.getElementById('deliveryBadgeCount');
+            if (countBadge) {
+                if (count > 0) {
+                    countBadge.textContent = count;
+                    countBadge.style.display = 'inline-block';
+                } else {
+                    countBadge.style.display = 'none';
+                }
+            }
+        }
+
+        function renderDeliveriesGrid() {
+            const grid = document.getElementById('deliveriesGrid');
+            grid.innerHTML = '';
+            
+            const deliveries = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('delivery_order_')) {
+                    try {
+                        const order = JSON.parse(localStorage.getItem(key));
+                        deliveries.push(order);
+                    } catch(e){}
+                }
+            }
+            
+            deliveries.sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (deliveries.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 50px 20px; background: var(--bg-card); border: 1px dashed var(--border-color); border-radius: var(--radius-lg);">
+                        <i class="fas fa-motorcycle" style="font-size: 3rem; margin-bottom: 15px; display: block;"></i>
+                        <p>No active delivery orders.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            deliveries.forEach(order => {
+                const card = document.createElement('div');
+                card.className = `delivery-card ${activeDeliveryOrderId === order.orderId ? 'active-delivery' : ''}`;
+                card.onclick = () => selectDeliveryOrder(order.orderId);
+                
+                const dateText = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const total = order.subtotal;
+                const itemsCount = order.items.reduce((sum, i) => sum + i.qty, 0);
+                
+                let statusLabel = 'Confirmed';
+                let statusClass = 'status-confirmed';
+                if (order.status === 'preparing') { statusLabel = 'Preparing'; statusClass = 'status-preparing'; }
+                else if (order.status === 'baking') { statusLabel = 'In the Oven'; statusClass = 'status-baking'; }
+                else if (order.status === 'outfordelivery') { statusLabel = 'Out for Delivery'; statusClass = 'status-outfordelivery'; }
+                else if (order.status === 'delivered') { statusLabel = 'Delivered'; statusClass = 'status-delivered'; }
+                
+                let addressHtml = `<i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.address)}`;
+                if (order.status !== 'confirmed') {
+                    addressHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}" target="_blank" onclick="event.stopPropagation();" style="color: #3498db; text-decoration: underline; display: inline-block; word-break: break-all;"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.address)}</a>`;
+                }
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <span style="font-weight: 700; color: var(--primary); font-size: 1.05rem;">ID: ${order.orderId}</span>
+                        <span class="delivery-status-badge ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: left; margin: 5px 0;">
+                        ${addressHtml}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 10px; font-size: 0.85rem; color: var(--text-secondary); margin-top: auto;">
+                        <span>${itemsCount} Item(s) • ${dateText}</span>
+                        <span style="font-weight: 700; color: var(--text-primary);">₹${total}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function selectDeliveryOrder(orderId) {
+            activeDeliveryOrderId = orderId;
+            selectedTable = null; // Clear selected table
+            
+            // Clear active tables UI
+            document.querySelectorAll('.table-card').forEach(c => c.classList.remove('active-table'));
+            
+            // Highlight active delivery card
+            document.querySelectorAll('.delivery-card').forEach(card => {
+                const headerText = card.querySelector('span').textContent;
+                card.classList.toggle('active-delivery', headerText.includes(orderId));
+            });
+            
+            renderDeliveryDetailsPanel(orderId);
+        }
+
+        function renderDeliveryDetailsPanel(orderId) {
+            const panel = document.getElementById('detailsPanel');
+            const stored = localStorage.getItem(`delivery_order_${orderId}`);
+            if (!stored) {
+                panel.innerHTML = `
+                    <div class="no-selection">
+                        <i class="fas fa-utensils"></i>
+                        <p>Order not found or already settled.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const order = JSON.parse(stored);
+            const total = order.subtotal;
+            
+            let itemsHtml = '';
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <div class="order-item-row" style="margin-bottom: 8px;">
+                        <div class="item-meta">
+                            <span class="item-name">${item.name} (${item.size})</span>
+                            <span class="item-qty">Qty: ${item.qty}</span>
+                        </div>
+                        <span class="item-price">₹${item.price * item.qty}</span>
+                    </div>
+                `;
+            });
+            
+            const statusVal = order.status || 'confirmed';
+            
+            let acceptBtnHtml = '';
+            if (statusVal === 'confirmed') {
+                acceptBtnHtml = `
+                    <div style="background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.2); padding: 15px; border-radius: var(--radius-md); text-align: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 10px; font-weight: 600;">
+                            <i class="fas fa-bell" style="color: #2ecc71;"></i> New Delivery Request Pending
+                        </span>
+                        <button class="btn" onclick="acceptDeliveryOrder('${order.orderId}')" style="width: 100%; justify-content: center; background: #2ecc71; border: none; font-weight: 700; color: white;">
+                            <i class="fas fa-check-circle"></i> Accept Order & Start Preparing
+                        </button>
+                    </div>
+                `;
+            }
+            
+            panel.innerHTML = `
+                <div class="panel-header">
+                    <h3>Delivery ${orderId}</h3>
+                    <span style="background: rgba(52,152,219,0.15); color: #3498db; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;">Active Delivery</span>
+                </div>
+                <div class="panel-body" style="text-align: left; display: flex; flex-direction: column; gap: 15px;">
+                    ${acceptBtnHtml}
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md);">
+                        <strong style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">CUSTOMER ADDRESS (Click to view Map):</strong>
+                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}" target="_blank" style="font-size: 0.85rem; color: #3498db; font-style: italic; text-decoration: underline; display: block; word-break: break-all;">
+                            <i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.address)}
+                        </a>
+                    </div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-md);">
+                        <strong style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">PAYMENT METHOD:</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-primary); font-weight: 600;">
+                            ${order.paymentMethod === 'upi' ? '⚡ Paid Online' : '💵 Cash on Delivery (COD)'}
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <h4 class="panel-section-title">Order Items</h4>
+                        <div class="order-items-list">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="panel-section-title">Delivery Progress Status</h4>
+                        <select id="deliveryProgressSelect" onchange="updateDeliveryProgress('${orderId}', this.value)" style="width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-size: 0.9rem;">
+                            <option value="confirmed" ${statusVal === 'confirmed' ? 'selected' : ''}>Order Confirmed</option>
+                            <option value="preparing" ${statusVal === 'preparing' ? 'selected' : ''}>Preparing</option>
+                            <option value="baking" ${statusVal === 'baking' ? 'selected' : ''}>In the Oven / Baking</option>
+                            <option value="outfordelivery" ${statusVal === 'outfordelivery' ? 'selected' : ''}>Out for Delivery</option>
+                            <option value="delivered" ${statusVal === 'delivered' ? 'selected' : ''}>Delivered</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="bill-summary">
+                        <div class="summary-row"><span>Subtotal:</span><span>₹${order.subtotal}</span></div>
+                        <div class="summary-row"><span>Delivery Fee:</span><span>FREE</span></div>
+                        <div class="summary-row total"><span>Grand Total:</span><span>₹${total}</span></div>
+                    </div>
+                    <button class="btn btn-success btn-lg" onclick="settleDeliveryOrder('${orderId}')" style="width: 100%; justify-content: center; margin-top: 10px;">
+                        <i class="fas fa-check-double"></i> Settle Delivery & Clear
+                    </button>
+                </div>
+            `;
+        }
+
+        function acceptDeliveryOrder(orderId) {
+            updateDeliveryProgress(orderId, 'preparing');
+            renderDeliveryDetailsPanel(orderId);
+        }
+
+        function updateDeliveryProgress(orderId, newStatus) {
+            const stored = localStorage.getItem(`delivery_order_${orderId}`);
+            if (!stored) return;
+            const order = JSON.parse(stored);
+            order.status = newStatus;
+            localStorage.setItem(`delivery_order_${orderId}`, JSON.stringify(order));
+            localStorage.setItem('dealUpdated', Date.now()); // Trigger sync to client tracker
+            if (dashboardViewMode === 'deliveries') {
+                renderDeliveriesGrid();
+            }
+        }
+
+        function settleDeliveryOrder(orderId) {
+            if (confirm(`Are you sure you want to settle delivery for Order ${orderId}?`)) {
+                const stored = localStorage.getItem(`delivery_order_${orderId}`);
+                if (stored) {
+                    const orderData = JSON.parse(stored);
+                    
+                    // Automatically update status to 'delivered' so that:
+                    // 1. If any client is tracking this order, it instantly updates to 'Delivered'!
+                    // 2. The history log archives it with status: 'delivered'!
+                    orderData.status = 'delivered';
+                    localStorage.setItem(`delivery_order_${orderId}`, JSON.stringify(orderData));
+                    localStorage.setItem('dealUpdated', Date.now()); // Sync client tracker
+                    
+                    // Archive to history
+                    archiveToHistory({
+                        type: 'delivery',
+                        orderId: orderId,
+                        address: orderData.address,
+                        paymentMethod: orderData.paymentMethod,
+                        items: orderData.items || [],
+                        subtotal: orderData.subtotal,
+                        status: 'delivered',
+                        timestamp: Date.now()
+                    });
+                }
+                
+                // Brief delay to allow client tracker to animate before deleting from active storage
+                setTimeout(() => {
+                    localStorage.removeItem(`delivery_order_${orderId}`);
+                    localStorage.setItem('dealUpdated', Date.now()); // Final sync
+                    activeDeliveryOrderId = null;
+                    if (dashboardViewMode === 'deliveries') {
+                        renderDeliveriesGrid();
+                    }
+                    document.getElementById('detailsPanel').innerHTML = `
+                        <div class="no-selection">
+                            <i class="fas fa-utensils"></i>
+                            <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
+                        </div>
+                    `;
+                }, 800);
+            }
+        }
+
+        // ===== ORDER HISTORY MANAGER =====
+        function openOrderHistory() {
+            renderOrderHistoryList();
+            document.getElementById('orderHistoryModal').style.display = 'flex';
+        }
+
+        function closeOrderHistory() {
+            document.getElementById('orderHistoryModal').style.display = 'none';
+        }
+
+
+
+        function archiveToHistory(record) {
+            let history = JSON.parse(localStorage.getItem('restaurantOrderHistory') || '[]');
+            history.push(record);
+            localStorage.setItem('restaurantOrderHistory', JSON.stringify(history));
+        }
+
+        function setHistoryDateToToday() {
+            const dateInput = document.getElementById('historyFilterDate');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+            renderOrderHistoryList();
+        }
+
+        function resetHistoryDate() {
+            const dateInput = document.getElementById('historyFilterDate');
+            if (dateInput) dateInput.value = '';
+            renderOrderHistoryList();
+        }
+
+        function renderOrderHistoryList() {
+            const grid = document.getElementById('orderHistoryCardsGrid');
+            grid.innerHTML = '';
+            
+            const history = JSON.parse(localStorage.getItem('restaurantOrderHistory') || '[]');
+            const searchVal = document.getElementById('historySearchInput').value.toLowerCase().trim();
+            const filterType = document.getElementById('historyFilterType').value;
+            const filterDate = document.getElementById('historyFilterDate').value;
+            
+            // Filter history desc (most recent first)
+            let filtered = [...history].reverse();
+            
+            if (filterType !== 'all') {
+                filtered = filtered.filter(item => item.type === filterType);
+            }
+            
+            if (filterDate) {
+                filtered = filtered.filter(item => {
+                    const itemDate = new Date(item.timestamp);
+                    const yyyy = itemDate.getFullYear();
+                    const mm = String(itemDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(itemDate.getDate()).padStart(2, '0');
+                    const itemDateString = `${yyyy}-${mm}-${dd}`;
+                    return itemDateString === filterDate;
+                });
+            }
+            
+            if (searchVal) {
+                filtered = filtered.filter(item => {
+                    const matchId = item.orderId ? item.orderId.toLowerCase().includes(searchVal) : false;
+                    const matchTable = item.tableNum ? `table ${item.tableNum}`.includes(searchVal) : false;
+                    const matchAddress = item.address ? item.address.toLowerCase().includes(searchVal) : false;
+                    const matchItems = item.items.some(i => i.name.toLowerCase().includes(searchVal));
+                    return matchId || matchTable || matchAddress || matchItems;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 50px 20px; background: var(--bg-card); border: 1px dashed var(--border-color); border-radius: var(--radius-lg);">
+                        <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; display: block; color: var(--text-muted);"></i>
+                        <p>No matching order history found.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach(record => {
+                const card = document.createElement('div');
+                card.className = 'history-order-card';
+                
+                const timeString = new Date(record.timestamp).toLocaleString();
+                
+                let typeBadge = '';
+                if (record.type === 'dinein') {
+                    typeBadge = `<span style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Dine-In: Table ${record.tableNum}</span>`;
+                } else {
+                    typeBadge = `<span style="background: rgba(52, 152, 219, 0.15); color: #3498db; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Delivery: ${record.orderId}</span>`;
+                }
+                
+                const itemsList = record.items.map(i => `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.85rem; color: var(--text-secondary);">
+                    <span>${i.name} (${i.size}) x${i.qty}</span>
+                    <span>₹${i.price * i.qty}</span>
+                </div>`).join('');
+                
+                const totalCharge = record.subtotal;
+                
+                let detailsText = '';
+                if (record.type === 'delivery') {
+                    const paymentLabel = record.paymentMethod === 'upi' ? '⚡ Paid Online' : '💵 Cash on Delivery (COD)';
+                    const labelColor = record.paymentMethod === 'upi' ? '#ff4d00' : '#2ecc71';
+                    detailsText = `
+                        <div style="background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; border-left: 3px solid var(--primary); margin-top: auto;">
+                            <strong style="font-size:0.7rem; color: var(--text-muted); display:block; margin-bottom:2px;">DELIVERY ADDRESS:</strong>
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(record.address)}" target="_blank" style="font-style:italic; color: #3498db; text-decoration: underline; word-break: break-all; display: block; margin-bottom: 4px;">
+                                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(record.address)}
+                            </a>
+                            <span style="display:block; font-size:0.75rem; font-weight:600; color: ${labelColor}; margin-top:4px;">
+                                ${paymentLabel}
+                            </span>
+                        </div>
+                    `;
+                } else {
+                    detailsText = `
+                        <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 6px 12px; border-radius: var(--radius-sm); margin-top: auto; border-left: 3px solid #2ecc71;">
+                            Table checkout completed
+                        </div>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">${timeString}</span>
+                        ${typeBadge}
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
+                        ${itemsList}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; font-weight:700; font-size:0.95rem; color: var(--text-primary);">
+                        <span>Total Bill</span>
+                        <span style="color: var(--primary);">₹${totalCharge}</span>
+                    </div>
+                    ${detailsText}
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function loadDeliveryAvailability() {
+            const status = localStorage.getItem('deliveryServiceStatus') || 'open';
+            const btn = document.getElementById('deliveryStatusToggleBtn');
+            if (btn) {
+                if (status === 'open') {
+                    btn.className = 'btn btn-success';
+                    btn.innerHTML = `<i class="fas fa-toggle-on"></i> Delivery Service: ON`;
+                    btn.style.background = '#2ecc71';
+                } else {
+                    btn.className = 'btn btn-danger';
+                    btn.innerHTML = `<i class="fas fa-toggle-off"></i> Delivery Service: OFF`;
+                    btn.style.background = '#e74c3c';
+                }
+            }
+        }
+
+        function toggleDeliveryAvailability() {
+            const current = localStorage.getItem('deliveryServiceStatus') || 'open';
+            const next = current === 'open' ? 'closed' : 'open';
+            localStorage.setItem('deliveryServiceStatus', next);
+            localStorage.setItem('dealUpdated', Date.now()); // Trigger sync to client
+            loadDeliveryAvailability();
+            
+            if (next === 'closed') {
+                alert("Home Delivery orders have been CLOSED! Customers will not be able to order delivery.");
+            } else {
+                alert("Home Delivery orders have been OPENED! Customers can now order delivery.");
+            }
+        }
+
+        // ===== COMMENTS & ISSUES MANAGER =====
+        function openCommentsManager() {
+            renderCommentsList();
+            document.getElementById('commentsModal').style.display = 'flex';
+        }
+
+        function closeCommentsManager() {
+            document.getElementById('commentsModal').style.display = 'none';
+        }
+
+        function updateCommentsBadgeCount() {
+            const comments = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+            const count = comments.length;
+            
+            const badge = document.getElementById('commentsBadgeCount');
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        function renderCommentsList() {
+            const grid = document.getElementById('commentsCardsGrid');
+            grid.innerHTML = '';
+            
+            const comments = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+            const searchVal = document.getElementById('commentsSearchInput').value.toLowerCase().trim();
+            const filterSubject = document.getElementById('commentsFilterSubject').value;
+            
+            let filtered = [...comments].reverse(); // newest first
+            
+            if (filterSubject !== 'all') {
+                filtered = filtered.filter(item => item.subject === filterSubject);
+            }
+            
+            if (searchVal) {
+                filtered = filtered.filter(item => {
+                    const matchName = item.name ? item.name.toLowerCase().includes(searchVal) : false;
+                    const matchEmail = item.email ? item.email.toLowerCase().includes(searchVal) : false;
+                    const matchPhone = item.phone ? item.phone.toLowerCase().includes(searchVal) : false;
+                    const matchMessage = item.message ? item.message.toLowerCase().includes(searchVal) : false;
+                    return matchName || matchEmail || matchPhone || matchMessage;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 50px 20px; background: var(--bg-card); border: 1px dashed var(--border-color); border-radius: var(--radius-lg);">
+                        <i class="fas fa-comment-slash" style="font-size: 3rem; margin-bottom: 15px; display: block; color: var(--text-muted);"></i>
+                        <p>No comments or issues found.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach((item, index) => {
+                // Find actual index in original comments array
+                const originalIndex = comments.findIndex(c => c.timestamp === item.timestamp && c.message === item.message);
+                
+                const card = document.createElement('div');
+                card.className = 'history-order-card';
+                
+                const timeString = new Date(item.timestamp).toLocaleString();
+                
+                let subjectBadge = '';
+                let borderCol = 'var(--primary)';
+                if (item.subject === 'order') {
+                    subjectBadge = `<span style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Order Issue</span>`;
+                    borderCol = '#e74c3c';
+                } else if (item.subject === 'feedback') {
+                    subjectBadge = `<span style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Feedback</span>`;
+                    borderCol = '#2ecc71';
+                } else if (item.subject === 'partnership') {
+                    subjectBadge = `<span style="background: rgba(155, 89, 182, 0.15); color: #9b59b6; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Partnership</span>`;
+                    borderCol = '#9b59b6';
+                } else if (item.subject === 'careers') {
+                    subjectBadge = `<span style="background: rgba(52, 152, 219, 0.15); color: #3498db; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Careers</span>`;
+                    borderCol = '#3498db';
+                } else {
+                    subjectBadge = `<span style="background: rgba(241, 196, 15, 0.15); color: #f1c40f; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block;">Other</span>`;
+                    borderCol = '#f1c40f';
+                }
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">${timeString}</span>
+                        ${subjectBadge}
+                    </div>
+                    <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                        <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);"><i class="fas fa-user" style="color: var(--primary); font-size: 0.85rem; margin-right: 6px;"></i>${escapeHtml(item.name)}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                            <i class="fas fa-envelope" style="margin-right: 4px; width: 14px;"></i>${escapeHtml(item.email)}
+                        </span>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                            <i class="fas fa-phone" style="margin-right: 4px; width: 14px;"></i>${escapeHtml(item.phone)}
+                        </span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.15); padding: 12px; border-radius: var(--radius-sm); font-size: 0.85rem; border-left: 3px solid ${borderCol}; white-space: pre-wrap; margin-top: 12px; margin-bottom: 15px; color: var(--text-primary); text-align: left; font-family: inherit;">
+                        ${escapeHtml(item.message)}
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: auto; justify-content: flex-end;">
+                        <a href="mailto:${encodeURIComponent(item.email)}?subject=Regarding%20your%20La%20Papa's%20Pizza%20feedback" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;"><i class="fas fa-envelope"></i> Email</a>
+                        <a href="tel:${escapeHtml(item.phone)}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;"><i class="fas fa-phone-alt"></i> Call</a>
+                        <button class="btn-danger" onclick="deleteComment(${originalIndex})" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;"><i class="fas fa-trash-alt"></i> Delete</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function deleteComment(index) {
+            if (confirm("Are you sure you want to delete this comment?")) {
+                let comments = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+                comments.splice(index, 1);
+                localStorage.setItem('contactMessages', JSON.stringify(comments));
+                updateCommentsBadgeCount();
+                renderCommentsList();
+            }
+        }
+
+        function clearAllComments() {
+            if (confirm("Are you sure you want to delete ALL customer comments/issues? This action cannot be undone.")) {
+                localStorage.setItem('contactMessages', JSON.stringify([]));
+                updateCommentsBadgeCount();
+                renderCommentsList();
+            }
+        }
+
+        function logoutAdmin() {
+            if (confirm("Are you sure you want to logout from Admin Dashboard?")) {
+                localStorage.removeItem('isAdminLoggedIn');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

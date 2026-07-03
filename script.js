@@ -167,9 +167,21 @@ window.addEventListener('load', () => {
             updateCart();
         }
     } else {
-        if (cartTableInfo) cartTableInfo.textContent = `Dine-in Order`;
+        // Since there is no table parameter, default to Home Delivery mode
+        orderMode = 'delivery';
+        
+        const modeDineInBtn = document.getElementById('modeDineInBtn');
+        const modeDeliveryBtn = document.getElementById('modeDeliveryBtn');
+        if (modeDineInBtn && modeDeliveryBtn) {
+            modeDineInBtn.classList.remove('active');
+            modeDeliveryBtn.classList.add('active');
+        }
+        
+        if (cartTableInfo) cartTableInfo.textContent = `Home Delivery`;
         if (receiptTableNum) receiptTableNum.textContent = `N/A`;
-        if (billTable) billTable.textContent = `Dine-in`;
+        if (billTable) billTable.textContent = `Home Delivery`;
+        
+        updateCart();
     }
 
     // Initialize Auto Login via Google One Tap (or sandbox One Tap fallback)
@@ -985,12 +997,16 @@ const modeDeliveryBtn = document.getElementById('modeDeliveryBtn');
 
 if (modeDineInBtn && modeDeliveryBtn) {
     modeDineInBtn.addEventListener('click', () => {
+        if (!tableNumber) {
+            showToast('Please scan the QR code on your table to use Dine-in ordering!', 'error');
+            return;
+        }
         orderMode = 'dinein';
         modeDineInBtn.classList.add('active');
         modeDeliveryBtn.classList.remove('active');
         const cartTableInfo = document.getElementById('cartTableInfo');
         if (cartTableInfo) {
-            cartTableInfo.textContent = tableNumber ? `Table ${tableNumber}` : 'Dine-In';
+            cartTableInfo.textContent = `Table ${tableNumber}`;
         }
         updateCart();
     });
@@ -1607,6 +1623,19 @@ function updateLoginUI() {
         
         if (reviewNameInput) reviewNameInput.value = userName;
         if (reviewEmailInput) reviewEmailInput.value = userEmail;
+        
+        const receiverNameInput = document.getElementById('receiverName');
+        const receiverPhoneInput = document.getElementById('receiverPhone');
+        if (receiverNameInput && !receiverNameInput.value) {
+            receiverNameInput.value = userName;
+        }
+        if (receiverPhoneInput && !receiverPhoneInput.value) {
+            const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+            const currentUser = registeredUsers.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+            if (currentUser && currentUser.phone) {
+                receiverPhoneInput.value = currentUser.phone;
+            }
+        }
     } else {
         loginBtn.innerHTML = `<i class="fas fa-user"></i> <span id="loginBtnText">Login</span>`;
         loginBtn.style.padding = '10px 24px';
@@ -1614,6 +1643,11 @@ function updateLoginUI() {
         
         if (reviewNameInput) reviewNameInput.value = '';
         if (reviewEmailInput) reviewEmailInput.value = '';
+        
+        const receiverNameInput = document.getElementById('receiverName');
+        const receiverPhoneInput = document.getElementById('receiverPhone');
+        if (receiverNameInput) receiverNameInput.value = '';
+        if (receiverPhoneInput) receiverPhoneInput.value = '';
     }
 }
 

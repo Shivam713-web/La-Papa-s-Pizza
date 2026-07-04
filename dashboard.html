@@ -142,6 +142,7 @@
             grid-template-columns: 1fr 400px;
             height: calc(100vh - 70px);
             overflow: hidden;
+            position: relative;
         }
 
         /* Floor Map Section */
@@ -291,6 +292,7 @@
             flex-direction: column;
             height: 100%;
             overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .panel-header {
@@ -577,6 +579,118 @@
         }
         .history-order-card:hover {
             border-color: var(--primary);
+        }
+
+        .back-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            margin-right: 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 6px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        [data-theme="light"] .back-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        @media (max-width: 1024px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 12px 20px;
+                gap: 12px;
+            }
+            .header-actions {
+                width: 100%;
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 8px;
+                margin: 0 -20px;
+                padding-left: 20px;
+                padding-right: 20px;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none;  /* IE and Edge */
+            }
+            .header-actions::-webkit-scrollbar {
+                display: none; /* Chrome, Safari and Opera */
+            }
+            .header-actions .btn, .header-actions a.btn {
+                flex-shrink: 0;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-body {
+                grid-template-columns: 1fr;
+            }
+            .details-panel {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                z-index: 1000;
+                transform: translateX(100%);
+                border-left: none;
+            }
+            .details-panel.active {
+                transform: translateX(0);
+            }
+            .back-btn {
+                display: inline-flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .floor-section {
+                padding: 20px 16px;
+                gap: 20px;
+            }
+            .tables-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 12px;
+            }
+            .table-card {
+                padding: 20px 10px;
+                border-radius: var(--radius-md);
+            }
+            .table-icon {
+                width: 55px;
+                height: 55px;
+                font-size: 1.4rem;
+            }
+            .table-label {
+                font-size: 0.95rem;
+            }
+            .table-status-text {
+                font-size: 0.7rem;
+            }
+            .status-bar {
+                flex-wrap: wrap;
+                gap: 10px 16px;
+            }
+            .modal-content, .user-modal-content {
+                padding: 20px 16px !important;
+            }
+            .modal-tabs-container {
+                gap: 10px;
+            }
+            .modal-tab-btn {
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
@@ -993,11 +1107,13 @@
 
         function renderDetailsPanel(t) {
             const panel = document.getElementById('detailsPanel');
+            panel.classList.add('active');
             const state = tablesState[t];
             
             if (!state || !state.orderedItems || state.orderedItems.length === 0) {
                 panel.innerHTML = `
                     <div class="panel-header">
+                        <button class="back-btn" onclick="closeDetailsPanel()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
                         <h3>Table ${t} Details</h3>
                         <span style="background: rgba(46, 204, 113, 0.1); color: var(--status-vacant);">Vacant</span>
                     </div>
@@ -1065,6 +1181,7 @@
             
             panel.innerHTML = `
                 <div class="panel-header">
+                    <button class="back-btn" onclick="closeDetailsPanel()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
                     <h3>Table ${t} Details</h3>
                     <span style="background: ${statusBg}; color: ${statusColor};">${statusText}</span>
                 </div>
@@ -1148,6 +1265,7 @@
                         <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
                     </div>
                 `;
+                closeDetailsPanel();
             }
         }
 
@@ -1171,6 +1289,7 @@
                             <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
                         </div>
                     `;
+                    closeDetailsPanel();
                 }
             } else {
                 const tableId = parseInt(choice);
@@ -1188,6 +1307,7 @@
                                     <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
                                 </div>
                             `;
+                            closeDetailsPanel();
                         }
                     }
                 } else {
@@ -1774,12 +1894,19 @@
 
         function renderDeliveryDetailsPanel(orderId) {
             const panel = document.getElementById('detailsPanel');
+            panel.classList.add('active');
             const stored = localStorage.getItem(`delivery_order_${orderId}`);
             if (!stored) {
                 panel.innerHTML = `
-                    <div class="no-selection">
-                        <i class="fas fa-utensils"></i>
-                        <p>Order not found or already settled.</p>
+                    <div class="panel-header">
+                        <button class="back-btn" onclick="closeDetailsPanel()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
+                        <h3>Order Details</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="no-selection">
+                            <i class="fas fa-utensils"></i>
+                            <p>Order not found or already settled.</p>
+                        </div>
                     </div>
                 `;
                 return;
@@ -1819,6 +1946,7 @@
             
             panel.innerHTML = `
                 <div class="panel-header">
+                    <button class="back-btn" onclick="closeDetailsPanel()" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
                     <h3>Delivery ${orderId}</h3>
                     <span style="background: rgba(52,152,219,0.15); color: #3498db; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;">Active Delivery</span>
                 </div>
@@ -1928,6 +2056,7 @@
                             <p>Select a table on the left floor plan to monitor its active orders and settle bills.</p>
                         </div>
                     `;
+                    closeDetailsPanel();
                 }, 800);
             }
         }
@@ -2278,6 +2407,18 @@
                 console.warn("Sync stream disconnected, reconnecting...", e);
             };
         }
+
+        function closeDetailsPanel() {
+            const panel = document.getElementById('detailsPanel');
+            if (panel) {
+                panel.classList.remove('active');
+            }
+            selectedTable = null;
+            activeDeliveryOrderId = null;
+            document.querySelectorAll('.table-card').forEach(c => c.classList.remove('active-table'));
+            document.querySelectorAll('.delivery-card').forEach(c => c.classList.remove('active-delivery'));
+        }
+
         initRemoteSync();
     </script>
 </body>

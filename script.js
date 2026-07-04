@@ -929,7 +929,7 @@ function showDeliverySuccessModal(orderId, orderData) {
     // Dynamic payment description HTML
     let paymentDescHtml = '';
     if (orderData.paymentMethod === 'upi') {
-        const upiId = '9026160186@paytm'; 
+        const upiId = '8826384238@paytm'; 
         const merchantName = 'La Papas Pizza';
         const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${total}&cu=INR&tn=Order%20${orderId}`;
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
@@ -1129,7 +1129,7 @@ if (payBillBtn) {
         document.getElementById('receiptTotal').textContent = `₹${total}`;
         
         // Generate dynamic UPI payment payload
-        const upiId = '9026160186@paytm'; 
+        const upiId = '8826384238@paytm'; 
         const merchantName = 'La Papas Pizza';
         const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${total}&cu=INR&tn=Table%20${tableNumber}`;
         

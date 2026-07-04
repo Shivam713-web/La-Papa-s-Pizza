@@ -1290,7 +1290,7 @@
             const subtotal = state.orderedItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
             const total = subtotal;
             
-            const upiId = '9026160186@paytm'; 
+            const upiId = '8826384238@paytm'; 
             const merchantName = 'La Papas Pizza';
             const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${total}&cu=INR&tn=Table%20${t}`;
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`;

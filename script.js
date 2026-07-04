@@ -459,12 +459,16 @@ function renderMenuCards(items) {
         card.className = 'menu-card';
         card.style.animationDelay = `${index * 0.05}s`;
         card.innerHTML = `
+            <div class="card-badges">${badgeHTML}</div>
             <div class="card-img">
-                <div class="card-badges">${badgeHTML}</div>
                 <button class="card-favorite" onclick="toggleFavorite(this)" aria-label="Add to favorites">
                     <i class="far fa-heart"></i>
                 </button>
                 <img src="${getItemImage(item)}" alt="${item.name}" loading="lazy">
+                <div class="mobile-add-container">
+                    <button class="mobile-add-btn" onclick="addToCart(${item.id})">ADD</button>
+                    <span class="customisable-text">Customisable</span>
+                </div>
             </div>
             <div class="card-content">
                 <h3 class="card-title">${item.name}</h3>

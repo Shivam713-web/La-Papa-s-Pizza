@@ -2686,28 +2686,37 @@ button, input, textarea, select {
     .nav-links {
         position: fixed;
         top: 0;
-        left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(13,13,13,0.98);
+        left: auto;
+        width: 280px;
+        max-width: 85%;
+        background: rgba(18, 18, 18, 0.98);
         backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-left: 1px solid var(--border-color);
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        opacity: 0;
-        visibility: hidden;
-        transition: var(--transition);
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 100px 30px 40px 30px;
+        gap: 20px;
+        z-index: 99;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
     }
     
     .nav-links.active {
-        opacity: 1;
-        visibility: visible;
+        transform: translateX(0);
     }
     
     .nav-links a {
-        font-size: 1.2rem;
-        padding: 12px 24px;
+        font-size: 1.15rem;
+        padding: 10px 0;
+        width: 100%;
+        border-bottom: 1px solid var(--border-color);
+        display: block;
+        text-align: left;
     }
     
     .hamburger { display: flex; }

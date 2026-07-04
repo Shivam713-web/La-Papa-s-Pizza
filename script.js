@@ -689,7 +689,7 @@ function updateCart() {
             `;
         });
         orderedCartItems.innerHTML = orderedHtml;
-        payBillBtn.style.display = 'block';
+        payBillBtn.style.display = 'none';
     } else {
         orderedSection.style.display = 'none';
         orderedCartItems.innerHTML = '';
@@ -721,7 +721,7 @@ function updateCart() {
     if (checkoutBtn) {
         if (orderMode === 'dinein') {
             checkoutBtn.innerHTML = `<i class="fas fa-fire"></i> Send KOT to Kitchen`;
-            if (payBillBtn && orderedItems.length > 0) payBillBtn.style.display = 'block';
+            if (payBillBtn) payBillBtn.style.display = 'none';
             if (deliveryAddressSection) deliveryAddressSection.style.display = 'none';
             if (paymentMethodSection) paymentMethodSection.style.display = 'none';
         } else {

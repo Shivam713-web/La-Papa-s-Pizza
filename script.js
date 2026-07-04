@@ -782,10 +782,24 @@ function publishSyncEvent(key, value) {
 }
 
 function saveDineInState(status = 'active') {
+    const userEmail = localStorage.getItem('userEmail') || '';
+    let userPhone = localStorage.getItem('userPhone') || '';
+    if (!userPhone && userEmail) {
+        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        const matched = registeredUsers.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+        if (matched && matched.phone) {
+            userPhone = matched.phone;
+            localStorage.setItem('userPhone', userPhone);
+        }
+    }
+    const userName = localStorage.getItem('userName') || '';
+
     const state = {
         table: tableNumber,
         orderedItems: orderedItems,
         status: status, // 'active' or 'billing'
+        customerPhone: userPhone,
+        customerName: userName,
         lastUpdated: Date.now()
     };
     const key = `table_order_${tableNumber}`;
@@ -1769,6 +1783,7 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('userName', user.name);
             localStorage.setItem('userEmail', user.email);
+            localStorage.setItem('userPhone', user.phone || '');
             
             showToast(`Welcome back, ${user.name}! 👋`, 'success');
             loginModal.classList.remove('active');
@@ -1857,6 +1872,7 @@ document.getElementById('signupForm').addEventListener('submit', (e) => {
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('userName', nameVal);
     localStorage.setItem('userEmail', emailVal);
+    localStorage.setItem('userPhone', phoneVal);
     
     showToast(`Welcome, ${nameVal}! Account created successfully! 🎉`, 'success');
     loginModal.classList.remove('active');

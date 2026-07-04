@@ -1323,6 +1323,13 @@
                     <span style="background: ${statusBg}; color: ${statusColor};">${statusText}</span>
                 </div>
                 <div class="panel-body">
+                    ${state.customerName || state.customerPhone ? `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 15px; font-size: 0.85rem; text-align: left;">
+                        <div style="font-weight:600; color: var(--primary); margin-bottom:4px;"><i class="fas fa-user"></i> Customer Info</div>
+                        ${state.customerName ? `<div><strong>Name:</strong> ${state.customerName}</div>` : ''}
+                        ${state.customerPhone ? `<div><strong>Phone/WhatsApp:</strong> ${state.customerPhone}</div>` : ''}
+                    </div>
+                    ` : ''}
                     <div>
                         <h4 class="panel-section-title">Kitchen Order Tickets (KOT)</h4>
                         <div class="order-items-list">
@@ -1377,18 +1384,54 @@
         }
 
         function settleTableBill(t) {
+            const orderData = JSON.parse(localStorage.getItem(`table_order_${t}`));
+            if (!orderData) return;
+
             if (confirm(`Are you sure you want to settle the bill for Table ${t} and mark it vacant?`)) {
-                // Archive to history
-                const orderData = JSON.parse(localStorage.getItem(`table_order_${t}`));
-                if (orderData) {
-                    archiveToHistory({
-                        type: 'dinein',
-                        tableNum: t,
-                        items: orderData.orderedItems || [],
-                        subtotal: (orderData.orderedItems || []).reduce((sum, item) => sum + item.price * item.qty, 0),
-                        timestamp: Date.now()
-                    });
+                // Generate WhatsApp Bill Receipt Text
+                let phone = orderData.customerPhone || '';
+                const items = orderData.orderedItems || [];
+                const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+                
+                let billText = `*La Papa's Pizza* 🍕\n`;
+                billText += `*Table ${t} - Bill Receipt*\n`;
+                billText += `------------------------\n`;
+                items.forEach(item => {
+                    billText += `${item.name} (${item.size}) x ${item.qty} - ₹${item.price * item.qty}\n`;
+                });
+                billText += `------------------------\n`;
+                billText += `*Grand Total: ₹${subtotal}*\n`;
+                billText += `------------------------\n`;
+                billText += `Thank you for dining with us! Visit again! 🍕`;
+                
+                const encodedText = encodeURIComponent(billText);
+                
+                // If phone is missing, prompt for it
+                if (!phone) {
+                    const inputPhone = prompt("Customer's phone number not found in session. Enter WhatsApp number (10-digit) to send the bill, or leave blank to skip:", "");
+                    if (inputPhone && inputPhone.trim()) {
+                        phone = inputPhone.trim();
+                    }
                 }
+                
+                if (phone) {
+                    // Clean phone number (remove non-digits, ensure country code)
+                    let cleanPhone = phone.replace(/\D/g, '');
+                    if (cleanPhone.length === 10) {
+                        cleanPhone = '91' + cleanPhone; // Default to India country code if 10 digits
+                    }
+                    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+                    window.open(waUrl, '_blank');
+                }
+
+                // Archive to history
+                archiveToHistory({
+                    type: 'dinein',
+                    tableNum: t,
+                    items: items,
+                    subtotal: subtotal,
+                    timestamp: Date.now()
+                });
                 
                 const key = `table_order_${t}`;
                 localStorage.removeItem(key);

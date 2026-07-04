@@ -777,18 +777,18 @@
                         
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
                             <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Item Name</label>
-                            <input type="text" id="menuItemName" placeholder="e.g. Margherita" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                            <input type="text" id="menuItemName" placeholder="e.g. Margherita" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; width: 100%; box-sizing: border-box;">
                         </div>
                         
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
                             <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Description / Toppings</label>
-                            <input type="text" id="menuItemDesc" placeholder="e.g. Fresh tomatoes, mozzarella, basil" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                            <input type="text" id="menuItemDesc" placeholder="e.g. Fresh tomatoes, mozzarella, basil" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; width: 100%; box-sizing: border-box;">
                         </div>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div style="display: flex; flex-direction: column; gap: 6px;">
                                 <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Category</label>
-                                <select id="menuItemCategory" style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                                <select id="menuItemCategory" style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; width: 100%; box-sizing: border-box;">
                                     <option value="veg">Veg Pizza</option>
                                     <option value="nonveg">Non-Veg Pizza</option>
                                     <option value="burgers">Burgers</option>
@@ -800,7 +800,7 @@
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 6px;">
                                 <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Emoji Icon</label>
-                                <input type="text" id="menuItemEmoji" placeholder="🍕 or 🍔" value="🍕" required style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; text-align: center;">
+                                <input type="text" id="menuItemEmoji" placeholder="🍕 or 🍔" value="🍕" required style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; text-align: center; width: 100%; box-sizing: border-box;">
                             </div>
                         </div>
 
@@ -809,15 +809,15 @@
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">Small / Reg</span>
-                                    <input type="number" id="menuItemPriceSmall" min="0" placeholder="Small" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center;">
+                                    <input type="number" id="menuItemPriceSmall" min="0" placeholder="Small" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center; width: 100%; box-sizing: border-box;">
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">Medium</span>
-                                    <input type="number" id="menuItemPriceMedium" min="0" placeholder="Medium" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center;">
+                                    <input type="number" id="menuItemPriceMedium" min="0" placeholder="Medium" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center; width: 100%; box-sizing: border-box;">
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">Large</span>
-                                    <input type="number" id="menuItemPriceLarge" min="0" placeholder="Large" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center;">
+                                    <input type="number" id="menuItemPriceLarge" min="0" placeholder="Large" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center; width: 100%; box-sizing: border-box;">
                                 </div>
                             </div>
                         </div>

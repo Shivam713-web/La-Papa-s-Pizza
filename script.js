@@ -702,6 +702,14 @@ function updateCart() {
     const total = subtotal + delivery;
     
     document.getElementById('cartSubtotal').textContent = `₹${subtotal}`;
+    const deliveryFeeRow = document.getElementById('deliveryFeeRow');
+    if (deliveryFeeRow) {
+        if (orderMode === 'dinein') {
+            deliveryFeeRow.style.display = 'none';
+        } else {
+            deliveryFeeRow.style.display = 'flex';
+        }
+    }
     document.getElementById('deliveryFee').textContent = 'FREE';
     const cartGstEl = document.getElementById('cartGst');
     if (cartGstEl) cartGstEl.textContent = `₹0`;

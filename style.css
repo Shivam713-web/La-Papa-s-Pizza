@@ -2247,6 +2247,7 @@ button, input, textarea, select {
     display: flex;
     flex-direction: column;
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 }
 
 .cart-sidebar.active {
@@ -2283,6 +2284,7 @@ button, input, textarea, select {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 .cart-items {

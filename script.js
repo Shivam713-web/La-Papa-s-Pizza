@@ -18,7 +18,8 @@ window.onerror = function (message, source, lineno, colno, error) {
     return false;
 };
 
-const menuData = [
+const defaultMenuData = [
+
     // Veggie Pizzas (under "veg" category)
     { id: 1, name: "Margherita", category: "veg", desc: "Say Cheese", emoji: "🍕", price: { small: 119, medium: 219, large: 319 }, rating: 4.8, reviews: 1450, badges: ["veg", "bestseller"] },
     { id: 2, name: "Spring Filling", category: "veg", desc: "Capsicum, Sweet Corn, Paneer", emoji: "🍕", price: { small: 170, medium: 260, large: 390 }, rating: 4.6, reviews: 780, badges: ["veg"] },
@@ -111,7 +112,13 @@ const menuData = [
     { id: 64, name: "Hot Choco Lava Cake", category: "desserts", desc: "Rich chocolate cake with a molten chocolate center", emoji: "🌋", price: { small: 79, medium: 79, large: 79 }, rating: 4.9, reviews: 1850, badges: ["veg", "bestseller"] },
     { id: 65, name: "Brownie with Chocolate Sauce", category: "desserts", desc: "Warm chocolate brownie drizzled with rich chocolate sauce", emoji: "🍫", price: { small: 89, medium: 89, large: 89 }, rating: 4.8, reviews: 920, badges: ["veg", "bestseller"] },
     { id: 66, name: "Add Ice-Cream", category: "desserts", desc: "Scoop of creamy vanilla ice cream to accompany your dessert", emoji: "🍨", price: { small: 30, medium: 30, large: 30 }, rating: 4.5, reviews: 290, badges: ["veg"] }
+
 ];
+
+let menuData = JSON.parse(localStorage.getItem('menuData')) || defaultMenuData;
+if (!localStorage.getItem('menuData')) {
+    localStorage.setItem('menuData', JSON.stringify(defaultMenuData));
+}
 
 let reviewsData = JSON.parse(localStorage.getItem('reviewsData')) || [
     { name: "Rahul Sharma", initial: "RS", rating: 5, text: "Absolutely the best pizza I've ever had! The crust was perfectly crispy, cheese was oozing, and delivery was super fast. Will order again!", date: "2 days ago", order: "Chicken Tikka (Spicy), Garlic Bread Sticks (6pcs)" },
@@ -2644,6 +2651,10 @@ function initRemoteSync() {
                     }
                     
                     // Sync campaign headings if changed
+                    if (payload.key === 'menuData') {
+                        menuData = payload.value || [];
+                        renderMenuCards(menuData);
+                    }
                     if (payload.key === 'dealUpdated') {
                         loadCampaignText();
                     }

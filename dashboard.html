@@ -704,6 +704,7 @@
             <button class="btn btn-secondary btn-icon-only" id="themeToggle" aria-label="Toggle Theme" style="border-radius: 50%; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
                 <i class="fas fa-moon"></i>
             </button>
+            <button class="btn btn-secondary" onclick="openMenuManager()"><i class="fas fa-pizza-slice"></i> Manage Menu Items</button>
             <button class="btn btn-secondary" onclick="openOfferManager()"><i class="fas fa-tags"></i> Edit Offers Text</button>
             <button class="btn btn-secondary" onclick="openUserManager()"><i class="fas fa-users"></i> Manage Users</button>
             <button class="btn btn-secondary" onclick="openOrderHistory()"><i class="fas fa-history"></i> Order History</button>
@@ -758,6 +759,142 @@
 
     <!-- Alert sound for incoming orders -->
     <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav" preload="auto"></audio>
+
+    <!-- Menu Items Manager Modal -->
+    <div class="user-modal-overlay" id="menuManagerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div class="user-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 30px; width: 95%; max-width: 1050px; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <button onclick="closeMenuManager()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-primary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;"><i class="fas fa-times"></i></button>
+            <h3 style="margin-bottom: 20px; font-weight: 700; font-size: 1.4rem; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-pizza-slice"></i> Manage Menu Items
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
+                <!-- Add / Edit Form Column -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px;">
+                    <h4 id="menuFormTitle" style="margin-bottom: 15px; font-weight: 600; color: var(--primary); font-size: 1.1rem;">Add New Menu Item</h4>
+                    <form id="adminMenuForm" onsubmit="saveMenuItem(event)">
+                        <input type="hidden" id="menuItemId">
+                        
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Item Name</label>
+                            <input type="text" id="menuItemName" placeholder="e.g. Margherita" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Description / Toppings</label>
+                            <input type="text" id="menuItemDesc" placeholder="e.g. Fresh tomatoes, mozzarella, basil" required style="padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Category</label>
+                                <select id="menuItemCategory" style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit;">
+                                    <option value="veg">Veg Pizza</option>
+                                    <option value="nonveg">Non-Veg Pizza</option>
+                                    <option value="burgers">Burgers</option>
+                                    <option value="sides">Sides & Dips</option>
+                                    <option value="pasta">Pasta</option>
+                                    <option value="drinks">Drinks</option>
+                                    <option value="desserts">Desserts</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Emoji Icon</label>
+                                <input type="text" id="menuItemEmoji" placeholder="🍕 or 🍔" value="🍕" required style="padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; text-align: center;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Prices (in ₹)</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">Small / Reg</span>
+                                    <input type="number" id="menuItemPriceSmall" min="0" placeholder="Small" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">Medium</span>
+                                    <input type="number" id="menuItemPriceMedium" min="0" placeholder="Medium" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 0.7rem; color: var(--text-muted); text-align: center;">Large</span>
+                                    <input type="number" id="menuItemPriceLarge" min="0" placeholder="Large" required style="padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem; font-family: inherit; text-align: center;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">Badges / Tags</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary);">
+                                    <input type="checkbox" id="badgeVeg" value="veg"> Veg
+                                </label>
+                                <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary);">
+                                    <input type="checkbox" id="badgeNonVeg" value="nonveg"> Non-Veg
+                                </label>
+                                <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary);">
+                                    <input type="checkbox" id="badgeBestseller" value="bestseller"> Bestseller
+                                </label>
+                                <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary);">
+                                    <input type="checkbox" id="badgeSpicy" value="spicy"> Spicy
+                                </label>
+                                <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary);">
+                                    <input type="checkbox" id="badgeNew" value="new"> New
+                                </label>
+                                <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary);">
+                                    <input type="checkbox" id="badgeMania" value="mania"> Mania
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn" id="menuFormSubmitBtn" type="submit" style="flex: 1; justify-content: center; border: none; font-weight: 600; font-family: inherit;">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                            <button class="btn btn-secondary" type="button" onclick="resetMenuManagerForm()" style="justify-content: center; font-weight: 600; font-family: inherit;">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Items Table List Column -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="font-weight: 600; color: var(--primary); font-size: 1.1rem;">Menu Directory</h4>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="adminMenuSearch" oninput="renderAdminMenuList()" placeholder="Search item..." style="padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.8rem; width: 150px;">
+                            <select id="adminMenuFilter" onchange="renderAdminMenuList()" style="padding: 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-size: 0.8rem; font-family: inherit;">
+                                <option value="all">All Categories</option>
+                                <option value="veg">Veg Pizza</option>
+                                <option value="nonveg">Non-Veg Pizza</option>
+                                <option value="burgers">Burgers</option>
+                                <option value="sides">Sides & Dips</option>
+                                <option value="pasta">Pasta</option>
+                                <option value="drinks">Drinks</option>
+                                <option value="desserts">Desserts</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-x: auto; max-height: 480px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                        <table class="user-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+                            <thead>
+                                <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);">
+                                    <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Item</th>
+                                    <th style="padding: 12px; font-weight: 600; color: var(--text-secondary);">Category</th>
+                                    <th style="padding: 12px; font-weight: 600; color: var(--text-secondary); text-align: center;">Prices (S/M/L)</th>
+                                    <th style="padding: 12px; font-weight: 600; color: var(--text-secondary); text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminMenuTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Offers & Deals Manager Modal -->
     <div class="modal-overlay" id="offerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
@@ -1612,6 +1749,334 @@
             }
         }
 
+        // ===== MENU MANAGER FUNCTIONS =====
+        const defaultMenuItems = [
+
+    // Veggie Pizzas (under "veg" category)
+    { id: 1, name: "Margherita", category: "veg", desc: "Say Cheese", emoji: "🍕", price: { small: 119, medium: 219, large: 319 }, rating: 4.8, reviews: 1450, badges: ["veg", "bestseller"] },
+    { id: 2, name: "Spring Filling", category: "veg", desc: "Capsicum, Sweet Corn, Paneer", emoji: "🍕", price: { small: 170, medium: 260, large: 390 }, rating: 4.6, reviews: 780, badges: ["veg"] },
+    { id: 3, name: "Garden Special", category: "veg", desc: "Mushroom, Capsicum, Onion, Tomato", emoji: "🍕", price: { small: 170, medium: 260, large: 390 }, rating: 4.5, reviews: 540, badges: ["veg"] },
+    { id: 4, name: "Tandoori Paneer", category: "veg", desc: "Paneer, Capsicum, Onion, Tomato", emoji: "🍕", price: { small: 170, medium: 260, large: 390 }, rating: 4.7, reviews: 920, badges: ["veg", "bestseller"] },
+    { id: 5, name: "Veg BBQ", category: "veg", desc: "Mushroom, Onion, Sweet Corn", emoji: "🍕", price: { small: 170, medium: 260, large: 390 }, rating: 4.4, reviews: 310, badges: ["veg"] },
+    { id: 6, name: "Hot Pepper Passion (Spicy)", category: "veg", desc: "Capsicum, Jalapeno, Red Paprika", emoji: "🍕", price: { small: 170, medium: 260, large: 390 }, rating: 4.6, reviews: 480, badges: ["veg", "spicy"] },
+    { id: 8, name: "Paneer Makhani (Spicy)", category: "veg", desc: "Paneer, Capsicum, Onion, Tomato, Red Paprika", emoji: "🍕", price: { small: 190, medium: 270, large: 400 }, rating: 4.8, reviews: 1050, badges: ["veg", "spicy", "bestseller"] },
+    { id: 9, name: "Farm Villa", category: "veg", desc: "Capsicum, Onion, Tomato, Black Olives, Sweet Corn", emoji: "🍕", price: { small: 190, medium: 270, large: 400 }, rating: 4.7, reviews: 880, badges: ["veg"] },
+    { id: 10, name: "Veggie Peri Peri (Spicy)", category: "veg", desc: "Paneer, Capsicum, Onion, Black Olive, Jalapeno", emoji: "🍕", price: { small: 190, medium: 270, large: 400 }, rating: 4.6, reviews: 670, badges: ["veg", "spicy"] },
+
+    // Classic Non-Veg Pizza (under "nonveg" category)
+    { id: 12, name: "Chicken Margherita", category: "nonveg", desc: "Chicken, Cheese", emoji: "🍕", price: { small: 209, medium: 349, large: 509 }, rating: 4.6, reviews: 610, badges: ["nonveg"] },
+    { id: 13, name: "Chicken Tikka (Spicy)", category: "nonveg", desc: "Chicken, Capsicum, Jalapeno, Onion", emoji: "🍕", price: { small: 210, medium: 355, large: 510 }, rating: 4.8, reviews: 1140, badges: ["nonveg", "spicy", "bestseller"] },
+    { id: 14, name: "Chicken Mexican (Spicy)", category: "nonveg", desc: "Chicken, Tomato, Sweet Corn, Jalapeno", emoji: "🍕", price: { small: 210, medium: 355, large: 510 }, rating: 4.7, reviews: 830, badges: ["nonveg", "spicy"] },
+    { id: 15, name: "Tandoori Chicken", category: "nonveg", desc: "Chicken, Onion, Capsicum, Tomato", emoji: "🍕", price: { small: 210, medium: 355, large: 510 }, rating: 4.8, reviews: 1250, badges: ["nonveg", "bestseller"] },
+    { id: 16, name: "Chicken Pepper Mix (Spicy)", category: "nonveg", desc: "Chicken, Capsicum, Jalapeno, Red Paprika", emoji: "🍕", price: { small: 219, medium: 370, large: 530 }, rating: 4.6, reviews: 540, badges: ["nonveg", "spicy"] },
+    { id: 17, name: "Chicken Peri-Peri (Spicy)", category: "nonveg", desc: "Chicken Onion, Red Paprika", emoji: "🍕", price: { small: 219, medium: 370, large: 530 }, rating: 4.7, reviews: 720, badges: ["nonveg", "spicy"] },
+    { id: 19, name: "Chicken BBQ", category: "nonveg", desc: "Chicken, Capsicum, Onion", emoji: "🍕", price: { small: 219, medium: 370, large: 530 }, rating: 4.6, reviews: 810, badges: ["nonveg", "new"] },
+    { id: 20, name: "Chicken Supreme (Spicy)", category: "nonveg", desc: "Chicken, Mushroom, Capsicum, Onion, Tomato, Black Olive, Jalapeno", emoji: "🍕", price: { small: 240, medium: 390, large: 550 }, rating: 4.9, reviews: 1560, badges: ["nonveg", "spicy", "bestseller"] },
+
+    // Garlic Bread & Zingy / Strombolis (under "sides" category)
+    { id: 21, name: "Garlic Bread Sticks (6 pcs)", category: "sides", desc: "Freshly baked garlic bread sticks", emoji: "🥖", price: { small: 95, medium: 95, large: 95 }, rating: 4.6, reviews: 2100, badges: ["veg", "bestseller"] },
+    { id: 22, name: "Cheesy Sticks", category: "sides", desc: "Garlic bread sticks loaded with extra cheese", emoji: "🥖", price: { small: 115, medium: 115, large: 115 }, rating: 4.7, reviews: 1450, badges: ["veg"] },
+    { id: 23, name: "Stuffed Cheesy Garlic Bread (6 pcs)", category: "sides", desc: "Only Cheese", emoji: "🥖", price: { small: 135, medium: 135, large: 135 }, rating: 4.5, reviews: 860, badges: ["veg"] },
+    { id: 24, name: "Stuffed Veg Garlic Bread", category: "sides", desc: "Sweet Corn, Jalapeno Cheese", emoji: "🥖", price: { small: 155, medium: 155, large: 155 }, rating: 4.8, reviews: 1890, badges: ["veg", "spicy", "bestseller"] },
+    { id: 25, name: "Stuffed Chicken Garlic Bread", category: "sides", desc: "Chicken, Chicken", emoji: "🥖", price: { small: 165, medium: 165, large: 165 }, rating: 4.8, reviews: 1120, badges: ["nonveg"] },
+
+    // Veggie Pizza Mania (under "veg" category)
+    { id: 26, name: "Cheese / Capsicum / Onion / Tomato / Sweet Corn", category: "veg", desc: "Topped with crunchy capsicum, onion, fresh tomato, and sweet corn", emoji: "🍕", price: { small: 80, medium: 95, large: 95 }, rating: 4.4, reviews: 310, badges: ["veg", "mania"] },
+    { id: 27, name: "Onion, Capsicum", category: "veg", desc: "Classic combination of crunchy onion and green capsicum", emoji: "🍕", price: { small: 105, medium: 120, large: 120 }, rating: 4.5, reviews: 420, badges: ["veg", "mania"] },
+    { id: 28, name: "Capsicum, Paneer", category: "veg", desc: "Succulent paneer cubes with fresh green capsicum", emoji: "🍕", price: { small: 115, medium: 130, large: 130 }, rating: 4.6, reviews: 580, badges: ["veg", "mania", "bestseller"] },
+    { id: 29, name: "Black Olives, Jalapeno", category: "veg", desc: "Zesty combination of sliced black olives and spicy jalapenos", emoji: "🍕", price: { small: 125, medium: 140, large: 140 }, rating: 4.5, reviews: 340, badges: ["veg", "mania"] },
+    { id: 30, name: "Paneer, Sweet Corn, Jalapeno", category: "veg", desc: "Loaded with paneer, sweet corn, and spicy jalapenos", emoji: "🍕", price: { small: 130, medium: 145, large: 145 }, rating: 4.7, reviews: 650, badges: ["veg", "mania", "bestseller"] },
+    { id: 31, name: "Paneer, Capsicum Red Paprika", category: "veg", desc: "Paneer chunks, green capsicum, and spicy red paprika", emoji: "🍕", price: { small: 140, medium: 155, large: 155 }, rating: 4.6, reviews: 480, badges: ["veg", "mania"] },
+
+    // Non-Veg Pizza Mania (under "nonveg" category)
+    { id: 32, name: "Chicken Tikka", category: "nonveg", desc: "Flavorful chicken tikka pieces on a single-serve base", emoji: "🍕", price: { small: 125, medium: 140, large: 140 }, rating: 4.7, reviews: 520, badges: ["nonveg", "mania", "bestseller"] },
+    { id: 33, name: "Chicken Capsicum", category: "nonveg", desc: "Juicy chicken bits and fresh capsicum toppings", emoji: "🍕", price: { small: 135, medium: 150, large: 150 }, rating: 4.6, reviews: 390, badges: ["nonveg", "mania"] },
+
+    // Beverages (under "drinks" category)
+    { id: 34, name: "Virgin Mojito", category: "drinks", desc: "Refreshing mint and lime mocktail", emoji: "🥤", price: { small: 99, medium: 99, large: 99 }, rating: 4.6, reviews: 520, badges: ["veg"] },
+    { id: 35, name: "Blue Lagoon", category: "drinks", desc: "Zesty blue curacao drink with a hint of lemon", emoji: "🥤", price: { small: 99, medium: 99, large: 99 }, rating: 4.5, reviews: 340, badges: ["veg"] },
+    { id: 36, name: "Masala Cold Drink", category: "drinks", desc: "Spiced cola with unique Indian masala blend", emoji: "🥤", price: { small: 49, medium: 49, large: 49 }, rating: 4.7, reviews: 810, badges: ["veg", "bestseller"] },
+    { id: 37, name: "Lemon Ice Tea", category: "drinks", desc: "Chilled black tea with fresh lemon flavor", emoji: "🥤", price: { small: 79, medium: 79, large: 79 }, rating: 4.4, reviews: 290, badges: ["veg"] },
+    { id: 38, name: "Cold Coffee", category: "drinks", desc: "Rich and creamy blended iced coffee", emoji: "🥤", price: { small: 79, medium: 79, large: 79 }, rating: 4.6, reviews: 920, badges: ["veg", "bestseller"] },
+    { id: 39, name: "Kitkat/Oreo Shake", category: "drinks", desc: "Thick chocolate shake blended with Kitkat or Oreo cookies", emoji: "🥤", price: { small: 109, medium: 109, large: 109 }, rating: 4.8, reviews: 1150, badges: ["veg", "bestseller"] },
+    { id: 40, name: "Lemon Soda", category: "drinks", desc: "Refreshing fizzy soda with fresh lime juice", emoji: "🥤", price: { small: 49, medium: 49, large: 49 }, rating: 4.5, reviews: 670, badges: ["veg"] },
+
+    // Zingy Parcels (under "sides" category)
+    { id: 41, name: "Veggie Zingy", category: "sides", desc: "Fresh paneer and spicy harissa sauce in a warm, golden pastry parcel", emoji: "🥟", price: { small: 60, medium: 60, large: 60 }, rating: 4.5, reviews: 480, badges: ["veg"] },
+    { id: 42, name: "Chicken Zingy", category: "sides", desc: "Juicy chicken chunks and harissa sauce in a fresh pastry parcel", emoji: "🥟", price: { small: 80, medium: 80, large: 80 }, rating: 4.7, reviews: 630, badges: ["nonveg", "bestseller"] },
+
+    // Strombolis (under "sides" category)
+    { id: 43, name: "Veggie Stromboli", category: "sides", desc: "Capsicum, onion, sweet corn, and melted cheese rolled in dough", emoji: "🥖", price: { small: 120, medium: 120, large: 120 }, rating: 4.5, reviews: 290, badges: ["veg"] },
+    { id: 69, name: "Peri-Peri Veg Stromboli", category: "sides", desc: "Capsicum, onion, sweet corn, peri peri seasoning and cheese", emoji: "🥖", price: { small: 150, medium: 150, large: 150 }, rating: 4.6, reviews: 180, badges: ["veg", "spicy"] },
+    { id: 44, name: "Chicken Stromboli", category: "sides", desc: "Spiced chicken chunks, capsicum, and mozzarella rolled in golden dough", emoji: "🥖", price: { small: 160, medium: 160, large: 160 }, rating: 4.7, reviews: 410, badges: ["nonveg", "bestseller"] },
+    { id: 70, name: "Peri-Peri Chicken Stromboli", category: "sides", desc: "Chicken, capsicum, onion, peri peri seasoning and cheese", emoji: "🥖", price: { small: 180, medium: 180, large: 180 }, rating: 4.7, reviews: 210, badges: ["nonveg", "spicy"] },
+
+    // Add Ons (under "sides" category)
+    { id: 45, name: "Cheese Slice", category: "sides", desc: "Extra slice of premium processed cheese", emoji: "🧀", price: { small: 18, medium: 18, large: 18 }, rating: 4.4, reviews: 150, badges: ["veg"] },
+    { id: 46, name: "Tandoori Dip", category: "sides", desc: "Creamy tandoori-flavored dipping sauce", emoji: "🍯", price: { small: 25, medium: 25, large: 25 }, rating: 4.6, reviews: 780, badges: ["veg"] },
+    { id: 47, name: "Cheesy Dip", category: "sides", desc: "Rich and creamy cheese dipping sauce", emoji: "🍯", price: { small: 25, medium: 25, large: 25 }, rating: 4.7, reviews: 920, badges: ["veg", "bestseller"] },
+    { id: 48, name: "Jalapeno Dip", category: "sides", desc: "Spicy and tangy jalapeno dip", emoji: "🍯", price: { small: 25, medium: 25, large: 25 }, rating: 4.5, reviews: 410, badges: ["veg"] },
+    { id: 49, name: "Cheesy Garlic Dip", category: "sides", desc: "Zesty garlic and cheese dipping sauce", emoji: "🍯", price: { small: 25, medium: 25, large: 25 }, rating: 4.7, reviews: 860, badges: ["veg", "bestseller"] },
+
+    // Burgers (under "burgers" category)
+    { id: 50, name: "Aloo Tikki Burger", category: "burgers", desc: "Crispy aloo patty with onion and signature sauce", emoji: "🍔", price: { small: 59, medium: 59, large: 59 }, rating: 4.5, reviews: 310, badges: ["veg"] },
+    { id: 51, name: "Veggie Burger", category: "burgers", desc: "Crispy veggie patty with onion, tomato, and signature sauce", emoji: "🍔", price: { small: 79, medium: 79, large: 79 }, rating: 4.6, reviews: 420, badges: ["veg"] },
+    { id: 52, name: "Veggie Tandoori Burger", category: "burgers", desc: "Crispy veggie patty with onion, tomato, cucumber, and tandoori sauce", emoji: "🍔", price: { small: 89, medium: 89, large: 89 }, rating: 4.6, reviews: 290, badges: ["veg"] },
+    { id: 53, name: "Veggie Makhni Burger", category: "burgers", desc: "Crispy veggie patty with onion, tomato, cucumber, and makhni sauce", emoji: "🍔", price: { small: 89, medium: 89, large: 89 }, rating: 4.5, reviews: 180, badges: ["veg"] },
+    { id: 54, name: "Paneer Burger", category: "burgers", desc: "Crispy paneer patty with onion, tomato, cucumber, and signature sauce", emoji: "🍔", price: { small: 99, medium: 99, large: 99 }, rating: 4.8, reviews: 850, badges: ["veg", "bestseller"] },
+    { id: 55, name: "Chicken Burger", category: "burgers", desc: "Crispy chicken patty with signature sauce", emoji: "🍔", price: { small: 89, medium: 89, large: 89 }, rating: 4.6, reviews: 620, badges: ["nonveg"] },
+    { id: 56, name: "Chicken Zinger", category: "burgers", desc: "Crispy chicken zinger with crunchy cabbage and garlic sauce", emoji: "🍔", price: { small: 110, medium: 110, large: 110 }, rating: 4.8, reviews: 1140, badges: ["nonveg", "bestseller"] },
+    { id: 57, name: "Murg Makhni Burger", category: "burgers", desc: "Crispy chicken patty with onion, tomato, cucumber, and makhni sauce", emoji: "🍔", price: { small: 99, medium: 99, large: 99 }, rating: 4.7, reviews: 480, badges: ["nonveg"] },
+
+    // Fries & Sides (under "sides" category)
+    { id: 58, name: "Salted Fries", category: "sides", desc: "Crispy golden fries tossed in seasoned salt with dip", emoji: "🍟", price: { small: 69, medium: 69, large: 69 }, rating: 4.5, reviews: 920, badges: ["veg"] },
+    { id: 59, name: "Peri Peri Fries", category: "sides", desc: "Crispy golden fries with peri peri seasoning with dip", emoji: "🍟", price: { small: 89, medium: 89, large: 89 }, rating: 4.7, reviews: 1040, badges: ["veg", "spicy"] },
+    { id: 60, name: "Loaded Cheesy Fries", category: "sides", desc: "Crispy golden fries smothered in warm liquid cheese", emoji: "🍟", price: { small: 119, medium: 119, large: 119 }, rating: 4.8, reviews: 1450, badges: ["veg", "bestseller"] },
+    { id: 61, name: "Pizza Cheesy Fries", category: "sides", desc: "Crispy fries with black olives, liquid cheese, and signature pizza sauce", emoji: "🍟", price: { small: 139, medium: 139, large: 139 }, rating: 4.8, reviews: 880, badges: ["veg", "bestseller"] },
+    { id: 67, name: "Chicken Popcorn with Dip.", category: "sides", desc: "Crispy chicken popcorn served with delicious dip", emoji: "🍗", price: { small: 110, medium: 110, large: 110 }, rating: 4.6, reviews: 310, badges: ["nonveg"] },
+    { id: 68, name: "Chicken Cheese Ball (6 pcs) with Dip.", category: "sides", desc: "Crispy chicken cheese balls served with delicious dip", emoji: "🧀", price: { small: 120, medium: 120, large: 120 }, rating: 4.7, reviews: 240, badges: ["nonveg"] },
+
+    // Pasta (under "pasta" category)
+    { id: 62, name: "Veggie Pasta", category: "pasta", desc: "Choice of Red/White/Mix Sauce, Tomato, Capsicum, Onion", emoji: "🍝", price: { small: 150, medium: 150, large: 150 }, rating: 4.6, reviews: 340, badges: ["veg"] },
+    { id: 63, name: "Chicken Pasta", category: "pasta", desc: "Choice of Red/White/Mix Sauce, Chicken, Tomato, Capsicum, Onion", emoji: "🍝", price: { small: 180, medium: 180, large: 180 }, rating: 4.7, reviews: 490, badges: ["nonveg"] },
+
+    // Desserts (under "desserts" category)
+    { id: 64, name: "Hot Choco Lava Cake", category: "desserts", desc: "Rich chocolate cake with a molten chocolate center", emoji: "🌋", price: { small: 79, medium: 79, large: 79 }, rating: 4.9, reviews: 1850, badges: ["veg", "bestseller"] },
+    { id: 65, name: "Brownie with Chocolate Sauce", category: "desserts", desc: "Warm chocolate brownie drizzled with rich chocolate sauce", emoji: "🍫", price: { small: 89, medium: 89, large: 89 }, rating: 4.8, reviews: 920, badges: ["veg", "bestseller"] },
+    { id: 66, name: "Add Ice-Cream", category: "desserts", desc: "Scoop of creamy vanilla ice cream to accompany your dessert", emoji: "🍨", price: { small: 30, medium: 30, large: 30 }, rating: 4.5, reviews: 290, badges: ["veg"] }
+
+];
+
+        function openMenuManager() {
+            // Initialize local menu if empty
+            if (!localStorage.getItem('menuData')) {
+                localStorage.setItem('menuData', JSON.stringify(defaultMenuItems));
+            }
+            renderAdminMenuList();
+            document.getElementById('menuManagerModal').style.display = 'flex';
+        }
+
+        function closeMenuManager() {
+            document.getElementById('menuManagerModal').style.display = 'none';
+            resetMenuManagerForm();
+        }
+
+        function resetMenuManagerForm() {
+            document.getElementById('adminMenuForm').reset();
+            document.getElementById('menuItemId').value = '';
+            document.getElementById('menuFormTitle').textContent = 'Add New Menu Item';
+            document.getElementById('menuFormSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> Add Item';
+            
+            // Clear checkboxes
+            document.getElementById('badgeVeg').checked = false;
+            document.getElementById('badgeNonVeg').checked = false;
+            document.getElementById('badgeBestseller').checked = false;
+            document.getElementById('badgeSpicy').checked = false;
+            document.getElementById('badgeNew').checked = false;
+            document.getElementById('badgeMania').checked = false;
+        }
+
+        function renderAdminMenuList() {
+            const tbody = document.getElementById('adminMenuTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const searchQuery = document.getElementById('adminMenuSearch').value.toLowerCase().trim();
+            const filterCategory = document.getElementById('adminMenuFilter').value;
+
+            // Load menu from localStorage
+            const menu = JSON.parse(localStorage.getItem('menuData')) || defaultMenuItems;
+
+            const filteredItems = menu.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || item.desc.toLowerCase().includes(searchQuery);
+                const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            if (filteredItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px 10px;">
+                            <i class="fas fa-search" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
+                            No matching items found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                
+                // Emoji + Name + description
+                const itemCell = `
+                    <td style="padding: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.5rem;">${item.emoji || '🍕'}</span>
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-primary);">${item.name}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">${item.desc}</div>
+                            </div>
+                        </div>
+                    </td>
+                `;
+
+                // Category labels
+                const catColors = {
+                    veg: '#2ecc71',
+                    nonveg: '#e74c3c',
+                    burgers: '#f1c40f',
+                    sides: '#9b59b6',
+                    pasta: '#e67e22',
+                    drinks: '#3498db',
+                    desserts: '#a0a0a0'
+                };
+                const catLabels = {
+                    veg: 'Veg Pizza',
+                    nonveg: 'Non-Veg Pizza',
+                    burgers: 'Burgers',
+                    sides: 'Sides & Dips',
+                    pasta: 'Pasta',
+                    drinks: 'Drinks',
+                    desserts: 'Desserts'
+                };
+                const categoryColor = catColors[item.category] || '#ffffff';
+                const categoryLabel = catLabels[item.category] || item.category;
+
+                const categoryCell = `
+                    <td style="padding: 12px; vertical-align: middle;">
+                        <span style="background: rgba(255,255,255,0.03); border: 1px solid ${categoryColor}; color: ${categoryColor}; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                            ${categoryLabel}
+                        </span>
+                    </td>
+                `;
+
+                // Price cell S/M/L
+                const priceCell = `
+                    <td style="padding: 12px; text-align: center; vertical-align: middle; color: var(--secondary); font-weight: 700;">
+                        S: ₹${item.price.small} | M: ₹${item.price.medium} | L: ₹${item.price.large}
+                    </td>
+                `;
+
+                // Actions cell
+                const actionsCell = `
+                    <td style="padding: 12px; text-align: center; vertical-align: middle;">
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <button class="btn btn-secondary" onclick="editMenuItem(${item.id})" style="padding: 4px 8px; font-size: 0.75rem; min-height: auto;"><i class="fas fa-edit"></i> Edit</button>
+                            <button class="btn" onclick="deleteMenuItem(${item.id})" style="padding: 4px 8px; font-size: 0.75rem; min-height: auto; background: #e74c3c; color: white;"><i class="fas fa-trash-alt"></i> Delete</button>
+                        </div>
+                    </td>
+                `;
+
+                tr.innerHTML = itemCell + categoryCell + priceCell + actionsCell;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveMenuItem(event) {
+            event.preventDefault();
+            
+            const idInput = document.getElementById('menuItemId').value;
+            const name = document.getElementById('menuItemName').value.trim();
+            const desc = document.getElementById('menuItemDesc').value.trim();
+            const category = document.getElementById('menuItemCategory').value;
+            const emoji = document.getElementById('menuItemEmoji').value.trim() || '🍕';
+            
+            const smallPrice = parseInt(document.getElementById('menuItemPriceSmall').value) || 0;
+            const mediumPrice = parseInt(document.getElementById('menuItemPriceMedium').value) || 0;
+            const largePrice = parseInt(document.getElementById('menuItemPriceLarge').value) || 0;
+
+            // Badges
+            const badges = [];
+            if (document.getElementById('badgeVeg').checked) badges.push('veg');
+            if (document.getElementById('badgeNonVeg').checked) badges.push('nonveg');
+            if (document.getElementById('badgeBestseller').checked) badges.push('bestseller');
+            if (document.getElementById('badgeSpicy').checked) badges.push('spicy');
+            if (document.getElementById('badgeNew').checked) badges.push('new');
+            if (document.getElementById('badgeMania').checked) badges.push('mania');
+
+            // Load menu
+            let menu = JSON.parse(localStorage.getItem('menuData')) || [...defaultMenuItems];
+
+            if (idInput) {
+                // Edit existing
+                const index = menu.findIndex(item => item.id == idInput);
+                if (index !== -1) {
+                    menu[index].name = name;
+                    menu[index].desc = desc;
+                    menu[index].category = category;
+                    menu[index].emoji = emoji;
+                    menu[index].price = { small: smallPrice, medium: mediumPrice, large: largePrice };
+                    menu[index].badges = badges;
+                    alert('Menu item updated successfully! 🍕');
+                }
+            } else {
+                // Add new
+                const newId = menu.reduce((max, item) => item.id > max ? item.id : max, 0) + 1;
+                const newItem = {
+                    id: newId,
+                    name: name,
+                    category: category,
+                    desc: desc,
+                    emoji: emoji,
+                    price: { small: smallPrice, medium: mediumPrice, large: largePrice },
+                    rating: 5.0,
+                    reviews: 0,
+                    badges: badges
+                };
+                menu.push(newItem);
+                alert('New menu item added successfully! 🎉');
+            }
+
+            // Save and sync
+            localStorage.setItem('menuData', JSON.stringify(menu));
+            publishSyncEvent('menuData', menu);
+
+            resetMenuManagerForm();
+            renderAdminMenuList();
+        }
+
+        function editMenuItem(itemId) {
+            const menu = JSON.parse(localStorage.getItem('menuData')) || defaultMenuItems;
+            const item = menu.find(i => i.id == itemId);
+            if (!item) return;
+
+            document.getElementById('menuItemId').value = item.id;
+            document.getElementById('menuItemName').value = item.name;
+            document.getElementById('menuItemDesc').value = item.desc;
+            document.getElementById('menuItemCategory').value = item.category;
+            document.getElementById('menuItemEmoji').value = item.emoji || '🍕';
+            document.getElementById('menuItemPriceSmall').value = item.price.small;
+            document.getElementById('menuItemPriceMedium').value = item.price.medium;
+            document.getElementById('menuItemPriceLarge').value = item.price.large;
+
+            // Badges
+            document.getElementById('badgeVeg').checked = item.badges.includes('veg');
+            document.getElementById('badgeNonVeg').checked = item.badges.includes('nonveg');
+            document.getElementById('badgeBestseller').checked = item.badges.includes('bestseller');
+            document.getElementById('badgeSpicy').checked = item.badges.includes('spicy');
+            document.getElementById('badgeNew').checked = item.badges.includes('new');
+            document.getElementById('badgeMania').checked = item.badges.includes('mania');
+
+            document.getElementById('menuFormTitle').textContent = 'Edit Menu Item';
+            document.getElementById('menuFormSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        }
+
+        function deleteMenuItem(itemId) {
+            if (!confirm('Are you sure you want to delete this menu item? This cannot be undone.')) return;
+
+            let menu = JSON.parse(localStorage.getItem('menuData')) || defaultMenuItems;
+            menu = menu.filter(item => item.id != itemId);
+
+            // Save and sync
+            localStorage.setItem('menuData', JSON.stringify(menu));
+            publishSyncEvent('menuData', menu);
+
+            renderAdminMenuList();
+            resetMenuManagerForm();
+        }
+
         // ===== USER MANAGER FUNCTIONS =====
         function openUserManager() {
             renderAdminUsersList();
@@ -2394,7 +2859,10 @@
                             loadTablesState();
                             
                             // Re-render user list if they are in User Manager
-                            if (payload.key === 'registeredUsers' || payload.key === 'adminUsers') {
+                            if (payload.key === 'menuData') {
+                    renderAdminMenuList();
+                }
+                if (payload.key === 'registeredUsers' || payload.key === 'adminUsers') {
                                 renderAdminUsersList();
                             }
                         }

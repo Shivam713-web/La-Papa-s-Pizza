@@ -900,6 +900,15 @@ document.getElementById('checkoutBtn').addEventListener('click', () => {
             console.error("Local storage error:", e);
         }
         
+        // Save to customer's order history
+        saveCustomerOrderToHistory({
+            orderId: deliveryOrderId,
+            type: 'delivery',
+            items: [...orderData.items],
+            total: orderData.subtotal,
+            timestamp: orderData.timestamp
+        });
+        
         // Show delivery confirmation modal
         showDeliverySuccessModal(deliveryOrderId, orderData);
         
@@ -1173,6 +1182,18 @@ if (closeReceiptBtn) {
     closeReceiptBtn.addEventListener('click', () => {
         receiptModal.classList.remove('active');
         document.body.style.overflow = '';
+        
+        // Save to customer's order history
+        const total = orderedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+        const orderId = 'DI' + tableNumber + '-' + Math.floor(1000 + Math.random() * 9000);
+        saveCustomerOrderToHistory({
+            orderId: orderId,
+            type: 'dinein',
+            items: [...orderedItems],
+            total: total,
+            timestamp: Date.now()
+        });
+
         const key = `table_order_${tableNumber}`;
         localStorage.removeItem(key); // Clear local storage (table vacant)
         publishSyncEvent(key, null);
@@ -2687,3 +2708,116 @@ function initRemoteSync() {
     };
 }
 initRemoteSync();
+
+// ===== CUSTOMER ORDER HISTORY CONTROLLERS =====
+function saveCustomerOrderToHistory(orderData) {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userEmail = localStorage.getItem('userEmail');
+    if (!isLoggedIn || !userEmail) return;
+
+    const historyKey = `customer_order_history_${userEmail.toLowerCase()}`;
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+    
+    // Avoid duplicating orders by ID
+    if (history.some(h => h.orderId === orderData.orderId)) return;
+
+    history.push({
+        orderId: orderData.orderId,
+        type: orderData.type, // 'dinein' or 'delivery'
+        items: orderData.items, // array of {name, size, qty, price}
+        total: orderData.total,
+        timestamp: orderData.timestamp || Date.now()
+    });
+
+    localStorage.setItem(historyKey, JSON.stringify(history));
+}
+
+function openOrderHistoryModal(event) {
+    if (event) event.preventDefault();
+
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!isLoggedIn) {
+        showToast('Please Login to view your order history! 🔒', 'error');
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.classList.add('active');
+        return;
+    }
+
+    const userEmail = localStorage.getItem('userEmail');
+    const historyKey = `customer_order_history_${userEmail.toLowerCase()}`;
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+
+    const contentContainer = document.getElementById('customerOrderHistoryContent');
+    if (!contentContainer) return;
+    contentContainer.innerHTML = '';
+
+    // Sort by newest first
+    history.sort((a, b) => b.timestamp - a.timestamp);
+
+    if (history.length === 0) {
+        contentContainer.innerHTML = `
+            <div style="text-align: center; color: var(--text-secondary); padding: 40px 10px; font-family: var(--font-main);">
+                <i class="fas fa-history" style="font-size: 2.5rem; color: var(--text-muted); margin-bottom: 12px; display: block;"></i>
+                <p style="font-weight: 500;">You haven't placed any orders yet.</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Pizzas you order will appear here! 🍕</p>
+            </div>
+        `;
+    } else {
+        history.forEach(order => {
+            const dateStr = new Date(order.timestamp).toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            let itemsDetailsHtml = '';
+            order.items.forEach(item => {
+                itemsDetailsHtml += `
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px;">
+                        <span>${item.name} (${item.size.charAt(0).toUpperCase() + item.size.slice(1)}) x ${item.qty}</span>
+                        <span>₹${item.price * item.qty}</span>
+                    </div>
+                `;
+            });
+
+            const orderTypeLabel = order.type === 'dinein' ? 
+                `<span style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">Dine-In</span>` :
+                `<span style="background: rgba(52, 152, 219, 0.15); color: #3498db; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">Home Delivery</span>`;
+
+            const orderCard = document.createElement('div');
+            orderCard.style.cssText = "background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 15px; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-main); text-align: left;";
+            orderCard.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 4px;">
+                    <div>
+                        <span style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-right: 8px;">Order #${order.orderId}</span>
+                        ${orderTypeLabel}
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">${dateStr}</span>
+                </div>
+                <div style="padding: 4px 0;">
+                    ${itemsDetailsHtml}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; font-weight: 700; color: var(--secondary); font-size: 0.95rem;">
+                    <span>Total Paid</span>
+                    <span>₹${order.total}</span>
+                </div>
+            `;
+            contentContainer.appendChild(orderCard);
+        });
+    }
+
+    // Hide mobile menu if open
+    const navLinks = document.getElementById('navLinks');
+    const hamburger = document.getElementById('hamburger');
+    if (navLinks && navLinks.classList.contains('active')) {
+        navLinks.classList.remove('active');
+        if (hamburger) hamburger.classList.remove('active');
+    }
+
+    document.getElementById('orderHistoryModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeOrderHistoryModal() {
+    document.getElementById('orderHistoryModal').style.display = 'none';
+    document.body.style.overflow = '';
+}

@@ -7,12 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script>
-        // Protect dashboard from unauthorized access
-        if (localStorage.getItem('isAdminLoggedIn') !== 'true') {
-            alert("Access Denied! Please login as Admin on the main website.");
-            window.location.href = 'index.html';
-        }
-
         // Apply theme early to prevent screen flash
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -695,6 +689,31 @@
     </style>
 </head>
 <body>
+    <!-- Direct Admin Login Overlay -->
+    <div id="adminLoginOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 40px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center;">
+            <div style="color: var(--primary); font-size: 3rem; margin-bottom: 15px;"><i class="fas fa-user-shield"></i></div>
+            <h2 style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary); font-family: 'Poppins', sans-serif;">Admin Dashboard</h2>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 25px; font-family: 'Poppins', sans-serif;">Please log in with your administrator credentials.</p>
+            
+            <form id="directAdminLoginForm" onsubmit="handleDirectAdminLogin(event)" style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; text-align: left;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); font-family: 'Poppins', sans-serif;">Username / Email</label>
+                    <input type="text" id="directAdminEmail" required placeholder="e.g. admin" style="padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 6px; text-align: left;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); font-family: 'Poppins', sans-serif;">Password</label>
+                    <input type="password" id="directAdminPassword" required placeholder="Enter password" style="padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                </div>
+                
+                <button class="btn" type="submit" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700; border: none; margin-top: 10px; background: var(--primary); color: white;">
+                    <i class="fas fa-sign-in-alt"></i> Login & Access
+                </button>
+            </form>
+        </div>
+    </div>
+
     <header>
         <a href="index.html" class="header-logo">
             <i class="fas fa-pizza-slice"></i>
@@ -2949,6 +2968,38 @@
             `;
         }
 
+        function checkAdminAccess() {
+            if (localStorage.getItem('isAdminLoggedIn') === 'true') {
+                document.getElementById('adminLoginOverlay').style.display = 'none';
+            } else {
+                document.getElementById('adminLoginOverlay').style.display = 'flex';
+            }
+        }
+
+        function handleDirectAdminLogin(event) {
+            event.preventDefault();
+            const emailVal = document.getElementById('directAdminEmail').value.trim();
+            const passwordVal = document.getElementById('directAdminPassword').value;
+            
+            const adminUsers = JSON.parse(localStorage.getItem('adminUsers') || '[]');
+            const matchingAdmin = adminUsers.find(u => u.email.toLowerCase() === emailVal.toLowerCase() || u.phone === emailVal);
+            
+            if ((emailVal === 'admin' && passwordVal === 'admin') || (matchingAdmin && matchingAdmin.password === passwordVal)) {
+                localStorage.setItem('isAdminLoggedIn', 'true');
+                const adminName = matchingAdmin ? matchingAdmin.name : 'System Admin';
+                localStorage.setItem('activeAdminName', adminName);
+                
+                alert('Admin access granted! Welcome back! 🔑');
+                
+                // Hide overlay and initialize badge
+                document.getElementById('adminLoginOverlay').style.display = 'none';
+                initAdminProfileBadge();
+            } else {
+                alert('Invalid Admin credentials! ❌');
+            }
+        }
+
+        checkAdminAccess();
         initAdminProfileBadge();
         initRemoteSync();
     </script>

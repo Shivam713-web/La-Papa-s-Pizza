@@ -944,15 +944,24 @@ function showDeliverySuccessModal(orderId, orderData) {
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
         
         paymentDescHtml = `
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; text-align: center;">
-                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 8px; font-size: 0.85rem;"><i class="fas fa-qrcode"></i> Scan QR to Pay via UPI</div>
-                <img src="${qrCodeUrl}" alt="UPI Payment QR" style="width: 150px; height: 150px; display: block; margin: 0 auto 10px; border-radius: 8px; border: 4px solid white;">
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Please scan the QR code to make payment of <strong>₹${total}</strong>.</div>
+            <div id="deliveryPaymentContainer" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; text-align: center;">
+                <div id="upiPaymentSubcontainer">
+                    <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 8px; font-size: 0.85rem;"><i class="fas fa-qrcode"></i> Scan QR to Pay via UPI</div>
+                    <img src="${qrCodeUrl}" alt="UPI Payment QR" style="width: 150px; height: 150px; display: block; margin: 0 auto 10px; border-radius: 8px; border: 4px solid white;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Please scan the QR code to make payment of <strong>₹${total}</strong>.</div>
+                    
+                    <div style="border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 10px;">
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px;">Payment failed or having issues?</div>
+                        <button class="btn btn-secondary btn-sm" onclick="switchDeliveryOrderToCOD('${orderId}', this)" style="width: 100%; justify-content: center; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-main);">
+                            <i class="fas fa-money-bill-wave" style="color: #2ecc71;"></i> Pay via Cash on Delivery (COD)
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
     } else {
         paymentDescHtml = `
-            <div style="background: rgba(255,184,0,0.05); border: 1px solid rgba(255,184,0,0.2); border-radius: var(--radius-md); padding: 12px; margin-bottom: 20px; text-align: left; display: flex; align-items: center; gap: 10px;">
+            <div id="deliveryPaymentContainer" style="background: rgba(255,184,0,0.05); border: 1px solid rgba(255,184,0,0.2); border-radius: var(--radius-md); padding: 12px; margin-bottom: 20px; text-align: left; display: flex; align-items: center; gap: 10px;">
                 <div style="font-size: 1.8rem; color: #f1c40f;"><i class="fas fa-money-bill-wave"></i></div>
                 <div>
                     <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">Cash on Delivery (COD)</div>
@@ -2827,4 +2836,36 @@ function openOrderHistoryModal(event) {
 function closeOrderHistoryModal() {
     document.getElementById('orderHistoryModal').style.display = 'none';
     document.body.style.overflow = '';
+}
+
+window.switchDeliveryOrderToCOD = function(orderId, btn) {
+    const key = `delivery_order_${orderId}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return;
+    
+    const orderData = JSON.parse(stored);
+    orderData.paymentMethod = 'cod';
+    
+    // Save and Sync
+    localStorage.setItem(key, JSON.stringify(orderData));
+    publishSyncEvent(key, orderData);
+    
+    // Switch the UI in the modal
+    const paymentContainer = document.getElementById('deliveryPaymentContainer');
+    if (paymentContainer) {
+        paymentContainer.style.background = 'rgba(255,184,0,0.05)';
+        paymentContainer.style.borderColor = 'rgba(255,184,0,0.2)';
+        paymentContainer.style.padding = '12px';
+        paymentContainer.innerHTML = `
+            <div style="text-align: left; display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 1.8rem; color: #f1c40f;"><i class="fas fa-money-bill-wave"></i></div>
+                <div>
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">Cash on Delivery (COD)</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Payment method switched! Please pay <strong>₹${orderData.subtotal}</strong> to the delivery rider.</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    showToast('Payment method switched to Cash on Delivery! 💵', 'success');
 }

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="style.css?v=1.3">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         // Apply theme early to prevent screen flash
@@ -44,6 +44,9 @@
                 <li><a href="#contact">Contact</a></li>
                 <li><a href="#" onclick="openOrderHistoryModal(event)"><i class="fas fa-history"></i> Order History</a></li>
                 <li><a href="dashboard.html" id="navDashboardLink"><i class="fas fa-lock"></i> Dashboard</a></li>
+                <!-- Mobile Only Actions -->
+                <li class="mobile-only"><a href="#" onclick="document.getElementById('themeToggle').click(); event.preventDefault();"><i class="fas fa-adjust"></i> Dark / Light Mode</a></li>
+                <li class="mobile-only"><a href="#" onclick="document.getElementById('searchToggle').click(); event.preventDefault();"><i class="fas fa-search"></i> Search Menu</a></li>
             </ul>
             <div class="nav-actions">
                 <button class="btn-icon" id="themeToggle" aria-label="Toggle Theme">

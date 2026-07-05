@@ -2614,7 +2614,7 @@ button, input, textarea, select {
 .back-to-top {
     position: fixed;
     bottom: 30px;
-    left: 30px;
+    right: 30px;
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -2642,6 +2642,10 @@ button, input, textarea, select {
 
 .back-to-top:hover {
     transform: translateY(-4px);
+}
+
+.mobile-only {
+    display: none !important;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -2685,6 +2689,46 @@ button, input, textarea, select {
 }
 
 @media (max-width: 768px) {
+    .mobile-only {
+        display: block !important;
+    }
+    
+    #themeToggle,
+    #searchToggle {
+        display: none !important;
+    }
+    
+    .menu-categories {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        flex-wrap: nowrap;
+        scrollbar-width: none; /* Firefox */
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .menu-categories::-webkit-scrollbar {
+        display: none; /* Safari & Chrome */
+    }
+    
+    .category-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .star-rating {
+        justify-content: center;
+    }
+    
+    .review-form-container h3 {
+        text-align: center;
+    }
+    
+    .review-form-container form label {
+        text-align: center;
+        display: block;
+    }
+
     html {
         scroll-padding-top: 64px;
     }
@@ -2762,12 +2806,13 @@ button, input, textarea, select {
         flex-direction: column;
         align-items: flex-start;
         justify-content: flex-start;
-        padding: 100px 30px 40px 30px;
-        gap: 20px;
+        padding: 80px 24px 30px 24px;
+        gap: 12px;
         z-index: 99;
         transform: translateX(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
+        overflow-y: auto;
     }
     
     .nav-links.active {
@@ -2775,8 +2820,8 @@ button, input, textarea, select {
     }
     
     .nav-links a {
-        font-size: 1.15rem;
-        padding: 10px 0;
+        font-size: 1.05rem;
+        padding: 8px 0;
         width: 100%;
         border-bottom: 1px solid var(--border-color);
         display: block;
@@ -2920,18 +2965,6 @@ button, input, textarea, select {
         grid-template-columns: 1fr;
     }
     
-    .menu-categories {
-        justify-content: flex-start;
-        overflow-x: auto;
-        padding-bottom: 8px;
-        flex-wrap: nowrap;
-    }
-    
-    .category-btn {
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-    
     .cart-sidebar { width: 100vw; }
     
     .hero-actions {
@@ -2940,11 +2973,11 @@ button, input, textarea, select {
     }
     
     .option-group {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
     
     .toppings-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     }
     
     .about-features {

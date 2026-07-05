@@ -2883,14 +2883,36 @@
                             } else {
                                 localStorage.setItem(payload.key, JSON.stringify(payload.value));
                             }
+
+                            if (payload.key === 'requestActiveState') {
+                                // Rebroadcast active tables state
+                                for (let t = 1; t <= 10; t++) {
+                                    const key = `table_order_${t}`;
+                                    const val = localStorage.getItem(key);
+                                    if (val) {
+                                        publishSyncEvent(key, JSON.parse(val));
+                                    }
+                                }
+                                // Rebroadcast active deliveries state
+                                for (let i = 0; i < localStorage.length; i++) {
+                                    const key = localStorage.key(i);
+                                    if (key && key.startsWith('delivery_order_')) {
+                                        const val = localStorage.getItem(key);
+                                        if (val) {
+                                            publishSyncEvent(key, JSON.parse(val));
+                                        }
+                                    }
+                                }
+                            }
+
                             // Refresh tables and deliveries grid
                             loadTablesState();
                             
                             // Re-render user list if they are in User Manager
                             if (payload.key === 'menuData') {
-                    renderAdminMenuList();
-                }
-                if (payload.key === 'registeredUsers' || payload.key === 'adminUsers') {
+                                renderAdminMenuList();
+                            }
+                            if (payload.key === 'registeredUsers' || payload.key === 'adminUsers') {
                                 renderAdminUsersList();
                             }
                         }
@@ -2902,6 +2924,11 @@
             eventSource.onerror = (e) => {
                 console.warn("Sync stream disconnected, reconnecting...", e);
             };
+
+            // Request active tables and delivery orders state on startup
+            setTimeout(() => {
+                publishSyncEvent('requestActiveState', 'dashboard');
+            }, 1000);
         }
 
         function closeDetailsPanel() {

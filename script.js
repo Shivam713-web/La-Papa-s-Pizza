@@ -2668,6 +2668,13 @@ function initRemoteSync() {
                         localStorage.setItem(payload.key, JSON.stringify(payload.value));
                     }
                     
+                    if (payload.key === 'requestActiveState') {
+                        // Rebroadcast table state if customer has active items on their table
+                        if (typeof orderedItems !== 'undefined' && orderedItems.length > 0) {
+                            saveDineInState(localStorage.getItem(`table_order_${tableNumber}`) ? JSON.parse(localStorage.getItem(`table_order_${tableNumber}`)).status : 'active');
+                        }
+                    }
+                    
                     // Sync active table data if it's the customer's table
                     if (payload.key === `table_order_${tableNumber}`) {
                         if (payload.value === null) {

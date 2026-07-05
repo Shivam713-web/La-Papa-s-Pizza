@@ -1413,7 +1413,9 @@
                         tableNum: t,
                         items: orderData.orderedItems || [],
                         subtotal: (orderData.orderedItems || []).reduce((sum, item) => sum + item.price * item.qty, 0),
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        customerName: orderData.customerName || '',
+                        customerPhone: orderData.customerPhone || ''
                     });
                 }
                 
@@ -2622,7 +2624,9 @@
                     const matchTable = item.tableNum ? `table ${item.tableNum}`.includes(searchVal) : false;
                     const matchAddress = item.address ? item.address.toLowerCase().includes(searchVal) : false;
                     const matchItems = item.items.some(i => i.name.toLowerCase().includes(searchVal));
-                    return matchId || matchTable || matchAddress || matchItems;
+                    const matchCustName = item.customerName ? item.customerName.toLowerCase().includes(searchVal) : false;
+                    const matchCustPhone = item.customerPhone ? item.customerPhone.toLowerCase().includes(searchVal) : false;
+                    return matchId || matchTable || matchAddress || matchItems || matchCustName || matchCustPhone;
                 });
             }
             
@@ -2672,9 +2676,21 @@
                         </div>
                     `;
                 } else {
+                    const custName = record.customerName || '';
+                    const custPhone = record.customerPhone || '';
+                    let custInfoHtml = '';
+                    if (custName || custPhone) {
+                        custInfoHtml = `
+                            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.05); color: var(--text-secondary); font-size: 0.75rem;">
+                                ${custName ? `<strong>Cust:</strong> ${escapeHtml(custName)}<br>` : ''}
+                                ${custPhone ? `<strong>Phone:</strong> ${escapeHtml(custPhone)}` : ''}
+                            </div>
+                        `;
+                    }
                     detailsText = `
                         <div style="font-size: 0.75rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 6px 12px; border-radius: var(--radius-sm); margin-top: auto; border-left: 3px solid #2ecc71;">
-                            Table checkout completed
+                            <div style="font-weight:600;">Table checkout completed</div>
+                            ${custInfoHtml}
                         </div>
                     `;
                 }

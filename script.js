@@ -2223,10 +2223,17 @@ setInterval(updateDealTimers, 1000);
 // ===== SMOOTH SCROLL FOR ANCHORS =====
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        if (href === '#') return; // Ignore empty hash links
+        
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
+        try {
+            const target = document.querySelector(href);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        } catch (err) {
+            console.error("Invalid smooth scroll selector:", err);
         }
     });
 });

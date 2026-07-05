@@ -1810,6 +1810,8 @@ if (adminLoginForm) {
         
         if ((usernameVal === 'admin' && passwordVal === 'admin') || (matchingAdmin && matchingAdmin.password === passwordVal)) {
             localStorage.setItem('isAdminLoggedIn', 'true');
+            const adminName = matchingAdmin ? matchingAdmin.name : 'System Admin';
+            localStorage.setItem('activeAdminName', adminName);
             showToast('Admin access granted! Redirecting to Dashboard... 🔑', 'success');
             setTimeout(() => {
                 window.location.href = 'dashboard.html';

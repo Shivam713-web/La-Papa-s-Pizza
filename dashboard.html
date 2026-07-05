@@ -710,6 +710,7 @@
             <button class="btn btn-secondary" onclick="openOrderHistory()"><i class="fas fa-history"></i> Order History</button>
             <button class="btn btn-secondary" onclick="openCommentsManager()"><i class="fas fa-comments"></i> Comments / Issues <span id="commentsBadgeCount" style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 50%; font-size: 0.7rem; margin-left: 4px; display: none;">0</span></button>
             <a href="qr-generator.html" class="btn btn-secondary"><i class="fas fa-qrcode"></i> Generate QR Codes</a>
+            <div id="adminProfileBadgeContainer" style="display: inline-flex; align-items: center;"></div>
             <button class="btn btn-secondary" onclick="logoutAdmin()"><i class="fas fa-sign-out-alt"></i> Logout</button>
             <button class="btn" onclick="clearAllTables()"><i class="fas fa-trash-alt"></i> Reset Tables</button>
         </div>
@@ -2880,6 +2881,7 @@
         function logoutAdmin() {
             if (confirm("Are you sure you want to logout from Admin Dashboard?")) {
                 localStorage.removeItem('isAdminLoggedIn');
+                localStorage.removeItem('activeAdminName');
                 window.location.href = 'index.html';
             }
         }
@@ -2930,6 +2932,24 @@
             document.querySelectorAll('.delivery-card').forEach(c => c.classList.remove('active-delivery'));
         }
 
+        function initAdminProfileBadge() {
+            const container = document.getElementById('adminProfileBadgeContainer');
+            if (!container) return;
+            
+            const activeAdminName = localStorage.getItem('activeAdminName') || 'System Admin';
+            const initial = activeAdminName.trim().charAt(0).toUpperCase();
+            
+            container.innerHTML = `
+                <div class="admin-profile-badge" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-right: 10px;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">
+                        ${initial}
+                    </div>
+                    <span>${activeAdminName}</span>
+                </div>
+            `;
+        }
+
+        initAdminProfileBadge();
         initRemoteSync();
     </script>
 </body>
